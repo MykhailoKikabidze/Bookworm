@@ -1,23 +1,25 @@
 <template>
     <div id="app">
       <!-- Always show the header -->
-      <header class="navbar">      <div class="logo">BOOK WORM</div>
-        <nav>
-          <a href="#"><i class="fas fa-book"></i> Library</a>
-          <div class="dropdown">
-            <a href="#" class="dropdown-toggle"><i class="fas fa-user-book"></i> My Library</a>
-            <div class="dropdown-menu">
-              <a href="#"><i class="fas fa-star"></i> Favorites</a>
-              <a href="#"><i class="fas fa-book-reader"></i> Reading</a>
-              <a href="#"><i class="fas fa-plus-square"></i> Will Read</a>
-              <a href="#"><i class="fas fa-check-square"></i> Had Read</a>
-            </div>
-          </div>
-          <a href="#"><i class="fas fa-tag"></i> Topics</a>
-          <a href="#"><i class="fas fa-envelope"></i> Contact</a>
-          <a href="#"><i class="fas fa-sign-in-alt"></i> Log In</a>
-        </nav>
-      </header>
+      <header class="navbar">
+  <router-link to="/" class="logo">BOOK WORM</router-link>
+  <nav>
+    <router-link to="/library"><i class="fas fa-book"></i> Library</router-link>
+    <div class="dropdown">
+      <a href="#" class="dropdown-toggle"><i class="fas fa-user-book"></i> My Library</a>
+      <div class="dropdown-menu">
+        <router-link to="/favorites"><i class="fas fa-star"></i> Favorites</router-link>
+        <router-link to="/reading"><i class="fas fa-book-reader"></i> Reading</router-link>
+        <router-link to="/will-read"><i class="fas fa-plus-square"></i> Will Read</router-link>
+        <router-link to="/had-read"><i class="fas fa-check-square"></i> Had Read</router-link>
+      </div>
+    </div>
+    <router-link to="/topics"><i class="fas fa-tag"></i> Topics</router-link>
+    <router-link to="/contact"><i class="fas fa-envelope"></i> Contact</router-link>
+    <router-link to="/login"><i class="fas fa-sign-in-alt"></i> Log In</router-link>
+  </nav>
+</header>
+
   
       <!-- Conditionally render the banner only on 'Home' route -->
       <section v-if="$route.name === 'Home'" class="banner">
@@ -128,11 +130,13 @@
     z-index: 10;
   }
   
-  .navbar .logo {
+ .navbar .logo {
     font-size: 26px;
     font-weight: bold;
     color: #002f5b; /* Dark blue for contrast */
-  }
+    text-decoration: none; /* Usuwa podkreślenie */
+}
+
   
   .navbar nav {
     display: flex; /* Use flexbox for nav items */

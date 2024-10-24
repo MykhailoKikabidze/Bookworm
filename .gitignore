@@ -1,3 +1,4 @@
+./service/settings.json
+./service/venv_worm/
 ./web_page/node_modules
 ./web_page/book_worm/.vscode
-

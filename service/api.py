@@ -6,10 +6,12 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from auth.crud import get_user, authenticate_user, authorize_user
+from setting.crud import change_username, change_password
 from auth import schemas, models
 import uvicorn
 import asyncio
 import json
+import typing
 
 
 app = FastAPI()
@@ -29,17 +31,20 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/", tags=["default"], response_model=typing.Dict)
 async def root():
     return {"connection": True}
 
 
 async def get_db_session() -> AsyncSession:
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            await session.close()
 
 
-async def run_server():
+async def run_server() -> None:
     config = uvicorn.Config("api:app", host="127.0.0.1", port=8000, reload=True)
     server = uvicorn.Server(config)
     await server.serve()
@@ -52,7 +57,7 @@ if __name__ == "__main__":
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-def create_access_token(info: dict, expires_delta: timedelta = None):
+def create_access_token(info: dict, expires_delta: timedelta = None) -> str:
     to_encode = info.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -63,7 +68,7 @@ def create_access_token(info: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db_session)):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db_session)) -> models.UsersModel:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -79,10 +84,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     user = await get_user(db, username)
     if user is None:
         raise credentials_exception
-    return schemas.UsersScheme(name=user.name, login=user.login, is_moder=user.is_moder)
+    return user
 
 
-@app.post("/token")
+@app.post("/token", tags=["logging"], response_model=typing.Dict)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db_session)):
     user = await authenticate_user(db, form_data.username, form_data.password)
     if not user or isinstance(user, schemas.UserError):
@@ -98,12 +103,13 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/users/me")
-async def read_users_me(current_user: models.UsersModel = Depends(get_current_user)):
-    return current_user
+@app.get("/users/me", tags=["logging"], response_model=schemas.UsersScheme)
+async def read_users_me(curr_user: models.UsersModel = Depends(get_current_user)):
+    user = schemas.UsersScheme(name=curr_user.name, login=curr_user.login, is_moder=curr_user.is_moder)
+    return user
 
 
-@app.post("/po/users/")
+@app.post("/users", tags=["logging"], response_model=typing.Dict)
 async def create_user(user: schemas.UsersScheme, db: AsyncSession = Depends(get_db_session)):
     result = await authorize_user(db, user)
     if isinstance(result, schemas.UserError):
@@ -111,5 +117,21 @@ async def create_user(user: schemas.UsersScheme, db: AsyncSession = Depends(get_
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=result.get_msg(),
         )
-    return {"status": True}
+    return {"status": 200}
+
+
+@app.put("/users/name", tags=["settings"], response_model=typing.Dict)
+async def update_username(new_username: str, curr_user: models.UsersModel = Depends(get_current_user), db: AsyncSession = Depends(get_db_session)):
+    if curr_user:
+        await change_username(db, curr_user, new_username)
+        return {"status": 200}
+    return {"status": 404}
+
+
+@app.put("/users/password", tags=["settings"], response_model=typing.Dict)
+async def update_password(new_password: str, curr_user: models.UsersModel = Depends(get_current_user), db: AsyncSession = Depends(get_db_session)):
+    if curr_user:
+        await change_password(db, curr_user, new_password)
+        return {"status": 200}
+    return {"status": 404}
 

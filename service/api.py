@@ -1,6 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+
+import auth.models
 from db import AsyncSessionLocal
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
@@ -28,6 +30,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = data["ACCESS_TOKEN_EXPIRE_MINUTES"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -112,12 +117,14 @@ async def read_users_me(curr_user: models.UsersModel = Depends(get_current_user)
 @app.post("/users", tags=["logging"], response_model=typing.Dict)
 async def create_user(user: schemas.UsersScheme, db: AsyncSession = Depends(get_db_session)):
     result = await authorize_user(db, user)
-    if isinstance(result, schemas.UserError):
+
+    if str(result.__class__) == "<class 'service.auth.schemas.UserError'>":
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=result.get_msg(),
+            status_code=status.HTTP_409_CONFLICT,
+            detail=result.message,
         )
-    return {"status": 200}
+    else:
+        return {"status": 200}
 
 
 @app.put("/users/name", tags=["settings"], response_model=typing.Dict)

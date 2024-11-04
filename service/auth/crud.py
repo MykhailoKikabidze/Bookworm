@@ -17,11 +17,10 @@ def get_password_hash(password: str) -> str:
 
 
 async def get_user(db: AsyncSession, login: str) -> Optional[models.UsersModel]:
-    async with db as session:
-        result = await session.execute(
-            select(models.UsersModel).filter(models.UsersModel.login == login)
-        )
-        return result.scalars().first()
+    result = await db.execute(
+        select(models.UsersModel).filter(models.UsersModel.login == login)
+    )
+    return result.scalars().first()
 
 
 async def authenticate_user(db: AsyncSession, username: str, password: str) -> Union[bool, schemas.UserError]:
@@ -34,7 +33,7 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> U
 
 
 async def authorize_user(db: AsyncSession, user: schemas.UsersScheme) -> Union[models.UsersModel, schemas.UserError]:
-    user_db: models.UsersModel | None = await get_user(db, user.name)
+    user_db: models.UsersModel | None = await get_user(db, user.login)
     if user_db:
         return schemas.UserError("User already exists")
     user.password = get_password_hash(user.password)

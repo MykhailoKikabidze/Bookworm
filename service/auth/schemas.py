@@ -5,6 +5,7 @@ from service.abstract_classes import Error
 class UsersScheme(BaseModel):
     name: str
     login: str
+    password: str
     is_moder: bool
 
 

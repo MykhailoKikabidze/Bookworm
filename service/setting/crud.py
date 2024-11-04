@@ -1,4 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+
+import auth.models
 import service.auth.models as auth_model
 from service.auth.crud import get_password_hash
 
@@ -15,3 +17,8 @@ async def change_password(db: AsyncSession, user: auth_model.UsersModel, new_pas
     async with db as session:
         session.add(user)
         await session.commit()
+
+
+async def delete_account(db: AsyncSession, user_db: auth.models.UsersModel) -> None:
+    await db.delete(user_db)
+    await db.commit()

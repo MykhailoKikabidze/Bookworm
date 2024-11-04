@@ -8,7 +8,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from auth.crud import get_user, authenticate_user, authorize_user
-from setting.crud import change_username, change_password
+from setting.crud import change_username, change_password, delete_account
 from auth import schemas, models
 import uvicorn
 import asyncio
@@ -142,3 +142,8 @@ async def update_password(new_password: str, curr_user: models.UsersModel = Depe
         return {"status": 200}
     return {"status": 404}
 
+
+@app.delete("/users", tags=["settings"], response_model=typing.Dict)
+async def delete_user(curr_user: models.UsersModel = Depends(get_current_user), db: AsyncSession = Depends(get_db_session)):
+    await delete_account(db, curr_user)
+    return {"status": 200}

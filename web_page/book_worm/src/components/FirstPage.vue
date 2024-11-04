@@ -108,31 +108,31 @@
   </div>
   <div class="classical-image-container">
     <div class="classical-image-row">
-      <router-lint to="/another-page" class="classical-image-wrapper">
+      <router-link to="/another-page" class="classical-image-wrapper">
         <img
         src="./pictures/classicBook1.jpg"
         class="classical-image"/>
-      </router-lint>
-      <router-lint to="/another-page" class="classical-image-wrapper">
+      </router-link>
+      <router-link to="/another-page" class="classical-image-wrapper">
         <img
         src="./pictures/classicalBook2.jpg"
         class="classical-image"/>
-      </router-lint>
-      <router-lint to="/another-page" class="classical-image-wrapper">
+      </router-link>
+      <router-link to="/another-page" class="classical-image-wrapper">
         <img
         src="./pictures/classicalBook3.jpg"
         class="classical-image"/>
-      </router-lint>
-      <router-lint to="/another-page" class="classical-image-wrapper">
+      </router-link>
+      <router-link to="/another-page" class="classical-image-wrapper">
         <img
         src="./pictures/classicalBook4.jpg"
         class="classical-image"/>
-      </router-lint>
-      <router-lint to="/another-page" class="classical-image-wrapper">
+      </router-link>
+      <router-link to="/another-page" class="classical-image-wrapper">
         <img
         src="./pictures/classicalBook5.jpg"
         class="classical-image"/>
-      </router-lint>
+      </router-link>
     </div>
   </div>
 </template>

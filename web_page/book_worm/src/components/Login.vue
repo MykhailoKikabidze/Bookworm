@@ -1,14 +1,25 @@
+
 <template>
   <div class="login-container">
-    <div>
-      <img src="./pictures/books.jpg" class="image-log" />
+    
+    <div v-if="showToast" class="toast"> <!--if there be wrong email or password it will show message about it-->
+      {{ errorMessage }}
     </div>
-    <div class="form-container">
+
+    <div class="overlay"></div> <!-- Warstwa półprzezroczysta nad obrazem tła -->
+    <div :class="['form-container', { 'login-failed': loginFailed }]">
       <h1>Login</h1>
-      <form @submit.prevent="handleSubmit">
+      <form @submit.prevent="postData">
         <div class="input-group">
           <label for="email">Email</label>
-          <input type="text" id="email" v-model="email" required />
+          <input
+            type="text"
+            id="email"
+            v-model="email"
+            :class="{ 'input-error': !isEmailValid && email.length > 0 }"
+            required
+          />
+          <span v-if="!isEmailValid && email.length > 0" class="error-message">Please enter a valid email.</span>
         </div>
         <div class="input-group">
           <label for="username">Username</label>
@@ -16,158 +27,230 @@
         </div>
         <div class="input-group">
           <label for="password">Password</label>
-          <input type="password" id="password" v-model="password" required />
+          <input
+            type="password"
+            id="password"
+            v-model="password"
+            :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
+            required
+          />
+          <span v-if="!isPasswordValid && password.length > 0" class="error-message">Password must be at least 8 characters.</span>
         </div>
-        <button type="submit">Login</button>
+        <button type="submit" :disabled="!isEmailValid || !isPasswordValid">Login</button>
       </form>
+      <p class="signup-link">
+        Don't have an account? <router-link to="/sign_up">Sign up</router-link>
+      </p>
     </div>
-
-    <p class="signup-link">
-      Don't have an account? <router-link to="/sign_up">Sign up</router-link>
-    </p>
-
-    <!-- <div class="image-container">
-      <div class="light-overlay"></div>
-      <img src="./pictures/books_log_in.jpg" class="image" alt="Login Background" />
-    </div> -->
   </div>
 </template>
 
 <script>
+// Import validator.js
+import validator from 'validator';
+
 export default {
-  name: 'Login',
   data() {
     return {
       username: '',
       password: '',
+      email: '',
+      responseData: null,
+      link_backend: "https://b07d-212-191-80-214.ngrok-free.app",
+      loginFailed: false, 
+      errorMessage: "", 
+      showToast: false 
     };
   },
-  methods: {
-    handleSubmit() {
-      console.log('Logging in with', this.username, this.password);
+  computed: {
+    // Validate email using validator.js
+    isEmailValid() {
+      return validator.isEmail(this.email);
     },
+    // Validate password with minimum length of 8
+    isPasswordValid() {
+      return validator.isLength(this.password, { min: 8 });
+    }
   },
+  methods: {
+    async postData() {
+      // Prevent sending if fields are invalid (shouldn't happen due to button disable)
+      if (!this.isEmailValid || !this.isPasswordValid) {
+        this.errorMessage = "Please correct your email or password.";
+        this.showToast = true;
+        setTimeout(() => { this.showToast = false; }, 3000);
+        return;
+      }
+
+      try {
+        const jsonData = JSON.stringify({
+          name: this.username,
+          password: this.password,
+          login: this.email,
+          is_moder: true
+        });
+
+        const response = await fetch(this.link_backend + "/users", {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json',
+            "ngrok-skip-browser-warning": "anyValue"
+          },
+          body: jsonData
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          this.responseData = data.detail;
+          this.loginFailed = true;
+          this.errorMessage = "Invalid email or password. Please try again."; 
+          this.showToast = true;
+          setTimeout(() => { this.showToast = false; }, 3000); 
+        } else {
+          const data = await response.json();
+          this.responseData = data.status;
+          this.loginFailed = false;
+          this.errorMessage = ""; 
+        }
+
+      } catch (error) {
+        console.error("Error posting data:", error);
+        this.loginFailed = true;
+        this.errorMessage = "Error connecting to server. Please try again later.";
+        this.showToast = true;
+        setTimeout(() => { this.showToast = false; }, 3000);
+      }
+    }
+  }
 };
 </script>
 
 <style scoped>
+
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 0, 0, 0.9);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 20;
+  font-weight: bold;
+}
+
+/* Red border for invalid inputs */
+.input-error {
+  border: 2px solid red;
+}
+
+/* Error message styling */
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+  position: absolute;
+  left: 0;
+  top: 100%;
+}
+
 .login-container {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  opacity: 06;
-  position: relative;
-  color: white;
+  background-image: url('./pictures/book.jpeg'); /* Obraz tła */
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
 }
 
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(250, 250, 250, 0.15); /* Jaśniejszy kolor szary */
+  z-index: 1;
+}
+
+/* Stylizacja formularza logowania */
 .form-container {
   position: relative;
-  z-index: 10;
-/* background-color: rgba(123, 5, 232, 0.7); */
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  width: 50vmax;
-  height: 65vh;
+  z-index: 2; /* Ustawienie formularza nad tłem */
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  width: 350px;
+  text-align: center;
+  font-family: 'Georgia', serif;
+  color: #002f5b;
 }
 
 h1 {
-  margin-bottom: 7px;
+  font-size: 28px;
+  color: #002f5b;
+  margin-bottom: 20px;
 }
 
 .input-group {
-  margin-bottom: 3vh;
+  margin-bottom: 20px;
+  text-align: left;
+  position: relative;
 }
 
 label {
+  font-size: 17px;
+  color: #002f5b;
+  margin-bottom: 5px;
   display: block;
-  margin-bottom: 3px;
 }
 
 input {
-  width: 45%;
-  padding: 15px;
-  border: none;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
   border-radius: 5px;
-  background-color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
+  font-family: 'Georgia', serif;
+  background-color: #f5f5f5;
+  color: #2f2f2f;
 }
 
 button {
-  width: 45%;
+  width: 100%;
   padding: 10px;
   border: none;
   border-radius: 5px;
-  background-color: #1ea490;
+  background-color: #002f5b; /* Original button color */
   color: white;
-  font-size: 25px;
-  margin-top: 5%;
+  font-size: 18px;
+  font-family: 'Georgia', serif;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: #004080; /* Darker navy blue on hover */
 }
 
 .signup-link {
-  position: relative;
-  z-index: 15;
-  top: -7vh;
-  text-align: center;
-  font-size: 15px;
-  color: rgba(255, 255, 255, 1); /* Lighter shade of white */
-  background-color: rgba(0, 0, 0, 0.6);
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-weight: 300;
-  opacity: 1;
+  margin-top: 15px;
+  font-size: 14px;
 }
 
 .signup-link a {
-  color: #1ea490; /* Change this to your desired color */
-  text-decoration: none; /* Removes the default underline */
+  color: #002f5b;
+  text-decoration: none;
+  font-weight: bold;
 }
 
 .signup-link a:hover {
-  color: #17a085; /* Optional: Hover effect with another shade */
-}
-
-
-.image-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 30%;
-  overflow: hidden;
-}
-
-.image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.light-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-}
-
-.image-log {
-  position: absolute;
-  z-index: 11;
-  width: 25vmax;
-  border-radius: 8px;
-  height: 65vh;
-  overflow: hidden;
-  object-fit: cover;
+  color:#004080;
 }
 </style>

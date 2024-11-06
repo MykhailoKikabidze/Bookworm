@@ -1,12 +1,25 @@
+
 <template>
   <div class="login-container">
+    
+    <div v-if="showToast" class="toast"> <!--if there be wrong email or password it will show message about it-->
+      {{ errorMessage }}
+    </div>
+
     <div class="overlay"></div> <!-- Warstwa półprzezroczysta nad obrazem tła -->
-    <div class="form-container">
+    <div :class="['form-container', { 'login-failed': loginFailed }]">
       <h1>Login</h1>
-      <form @submit.prevent="handleSubmit">
+      <form @submit.prevent="postData">
         <div class="input-group">
           <label for="email">Email</label>
-          <input type="text" id="email" v-model="email" required />
+          <input
+            type="text"
+            id="email"
+            v-model="email"
+            :class="{ 'input-error': !isEmailValid && email.length > 0 }"
+            required
+          />
+          <span v-if="!isEmailValid && email.length > 0" class="error-message">Please enter a valid email.</span>
         </div>
         <div class="input-group">
           <label for="username">Username</label>
@@ -14,9 +27,16 @@
         </div>
         <div class="input-group">
           <label for="password">Password</label>
-          <input type="password" id="password" v-model="password" required />
+          <input
+            type="password"
+            id="password"
+            v-model="password"
+            :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
+            required
+          />
+          <span v-if="!isPasswordValid && password.length > 0" class="error-message">Password must be at least 8 characters.</span>
         </div>
-        <button type="submit">Login</button>
+        <button type="submit" :disabled="!isEmailValid || !isPasswordValid">Login</button>
       </form>
       <p class="signup-link">
         Don't have an account? <router-link to="/sign_up">Sign up</router-link>
@@ -26,24 +46,116 @@
 </template>
 
 <script>
+// Import validator.js
+import validator from 'validator';
+
 export default {
-  name: 'Login',
   data() {
     return {
       username: '',
       password: '',
+      email: '',
+      responseData: null,
+      link_backend: "https://b07d-212-191-80-214.ngrok-free.app",
+      loginFailed: false, 
+      errorMessage: "", 
+      showToast: false 
     };
   },
-  methods: {
-    handleSubmit() {
-      console.log('Logging in with', this.username, this.password);
+  computed: {
+    // Validate email using validator.js
+    isEmailValid() {
+      return validator.isEmail(this.email);
     },
+    // Validate password with minimum length of 8
+    isPasswordValid() {
+      return validator.isLength(this.password, { min: 8 });
+    }
   },
+  methods: {
+    async postData() {
+      // Prevent sending if fields are invalid (shouldn't happen due to button disable)
+      if (!this.isEmailValid || !this.isPasswordValid) {
+        this.errorMessage = "Please correct your email or password.";
+        this.showToast = true;
+        setTimeout(() => { this.showToast = false; }, 3000);
+        return;
+      }
+
+      try {
+        const jsonData = JSON.stringify({
+          name: this.username,
+          password: this.password,
+          login: this.email,
+          is_moder: true
+        });
+
+        const response = await fetch(this.link_backend + "/users", {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json',
+            "ngrok-skip-browser-warning": "anyValue"
+          },
+          body: jsonData
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          this.responseData = data.detail;
+          this.loginFailed = true;
+          this.errorMessage = "Invalid email or password. Please try again."; 
+          this.showToast = true;
+          setTimeout(() => { this.showToast = false; }, 3000); 
+        } else {
+          const data = await response.json();
+          this.responseData = data.status;
+          this.loginFailed = false;
+          this.errorMessage = ""; 
+        }
+
+      } catch (error) {
+        console.error("Error posting data:", error);
+        this.loginFailed = true;
+        this.errorMessage = "Error connecting to server. Please try again later.";
+        this.showToast = true;
+        setTimeout(() => { this.showToast = false; }, 3000);
+      }
+    }
+  }
 };
 </script>
 
 <style scoped>
-/* Ustawienie pełnoekranowego obrazu tła */
+
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 0, 0, 0.9);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 20;
+  font-weight: bold;
+}
+
+/* Red border for invalid inputs */
+.input-error {
+  border: 2px solid red;
+}
+
+/* Error message styling */
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+  position: absolute;
+  left: 0;
+  top: 100%;
+}
+
 .login-container {
   position: relative;
   display: flex;
@@ -89,6 +201,7 @@ h1 {
 .input-group {
   margin-bottom: 20px;
   text-align: left;
+  position: relative;
 }
 
 label {

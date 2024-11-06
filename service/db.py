@@ -1,14 +1,13 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import json
+import os
 
-with open(r'C:\Users\HP\MYFILES\Progs\Bookworm\service\settings.json', 'r') as file:
-    data = json.load(file)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-SQLALCHEMY_DATABASE_URL = data["credentials"]
-
-engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=True)
-AsyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+engine = create_async_engine(DATABASE_URL, echo=True)
+AsyncSessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
+)
 
 Base = declarative_base()

@@ -1,8 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-
 import auth.models
-import service.auth.models as auth_model
-from service.auth.crud import get_password_hash
+import auth.models as auth_model
+from auth.crud import get_password_hash
 
 
 async def change_username(db: AsyncSession, user: auth_model.UsersModel, new_name: str):
@@ -12,7 +11,9 @@ async def change_username(db: AsyncSession, user: auth_model.UsersModel, new_nam
         await session.commit()
 
 
-async def change_password(db: AsyncSession, user: auth_model.UsersModel, new_password: str):
+async def change_password(
+    db: AsyncSession, user: auth_model.UsersModel, new_password: str
+):
     user.password = get_password_hash(new_password)
     async with db as session:
         session.add(user)

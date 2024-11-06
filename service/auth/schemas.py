@@ -1,11 +1,13 @@
+from typing import Optional
+
 from pydantic import BaseModel
-from service.abstract_classes import Error
+from abstract_classes import Error
 
 
 class UsersScheme(BaseModel):
     name: str
     login: str
-    password: str
+    password: Optional[str] = None
     is_moder: bool
 
 

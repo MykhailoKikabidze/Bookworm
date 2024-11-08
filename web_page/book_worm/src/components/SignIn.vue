@@ -3,7 +3,7 @@
     <div class="background-image"></div> <!-- Background image with opacity -->
     <div class="overlay"></div> <!-- Semi-transparent overlay -->
     <div class="form-container">
-      <h1>Login</h1>
+      <h1>Sign in</h1>
       <form @submit.prevent="handleSubmit">
         <div class="input-group">
           <label for="username">Username</label>
@@ -13,10 +13,10 @@
           <label for="password">Password</label>
           <input type="password" id="password" v-model="password" required />
         </div>
-        <button type="submit">Login</button>
+        <button type="submit">Sign in</button>
       </form>
       <p class="login-link">
-        Already have an account? <router-link to="/login">Login</router-link>
+        Don't have an account? <router-link to="/login">Create account</router-link>
       </p>
     </div>
   </div>

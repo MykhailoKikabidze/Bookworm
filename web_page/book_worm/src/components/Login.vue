@@ -8,7 +8,7 @@
 
     <div class="overlay"></div> <!-- Warstwa półprzezroczysta nad obrazem tła -->
     <div :class="['form-container', { 'login-failed': loginFailed }]">
-      <h1>Login</h1>
+      <h1>Create account</h1>
       <form @submit.prevent="postData">
         <div class="input-group">
           <label for="email">Email</label>
@@ -36,10 +36,10 @@
           />
           <span v-if="!isPasswordValid && password.length > 0" class="error-message">Password must be at least 8 characters.</span>
         </div>
-        <button type="submit" :disabled="!isEmailValid || !isPasswordValid">Login</button>
+        <button type="submit" :disabled="!isEmailValid || !isPasswordValid">Create</button>
       </form>
-      <p class="signup-link">
-        Don't have an account? <router-link to="/sign_up">Sign up</router-link>
+      <p class="signin-link">
+        Already have an account? <router-link to="/sign_in">Sign in</router-link>
       </p>
     </div>
   </div>
@@ -56,7 +56,7 @@ export default {
       password: '',
       email: '',
       responseData: null,
-      link_backend: "https://b07d-212-191-80-214.ngrok-free.app",
+      link_backend: "https://69e5-212-191-80-243.ngrok-free.app",
       loginFailed: false, 
       errorMessage: "", 
       showToast: false 
@@ -239,18 +239,18 @@ button:hover {
   background-color: #004080; /* Darker navy blue on hover */
 }
 
-.signup-link {
+.signin-link {
   margin-top: 15px;
   font-size: 14px;
 }
 
-.signup-link a {
+.signin-link a {
   color: #002f5b;
   text-decoration: none;
   font-weight: bold;
 }
 
-.signup-link a:hover {
+.signin-link a:hover {
   color:#004080;
 }
 </style>

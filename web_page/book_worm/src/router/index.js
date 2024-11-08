@@ -10,7 +10,8 @@ import HadRead from '../components/HadRead.vue'; // Import Had Read component
 import Topics from '../components/Topics.vue'; // Import Topics component
 import Contact from '../components/Contact.vue'; // Import Contact component
 import Login from '../components/Login.vue'; // Import Login component
-import SignUp from '../components/SignUp.vue'; // Import Sign Up component
+import SignUp from '../components/SignIn.vue'; // Import Sign Up component
+import SignIn from '../components/SignIn.vue';
 
 const routes = [
  
@@ -23,7 +24,7 @@ const routes = [
   { path: '/had-read', name: 'HadRead', component: HadRead }, // New route for Had Read page
   { path: '/topics', name: 'Topics', component: Topics }, // New route for Topics page
   { path: '/contact', name: 'Contact', component: Contact }, // New route for Contact page
-  { path: '/sign_up', name: 'SignUP', component: SignUp }, // New route for Sign Up page
+  { path: '/sign_in', name: 'SignIN', component: SignIn }, // New route for Sign In page
   { path: '/login', name: 'Login', component: Login } // New route for Login page
 ];
 

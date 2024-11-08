@@ -16,7 +16,7 @@
     </div>
     <router-link to="/topics"><i class="fas fa-tag"></i> Topics</router-link>
     <router-link to="/contact"><i class="fas fa-envelope"></i> Contact</router-link>
-    <router-link to="/login"><i class="fas fa-sign-in-alt"></i> Log In</router-link>
+    <router-link to="/sign_in"><i class="fas fa-sign-in-alt"></i> Log In</router-link>
   </nav>
 </header>
 

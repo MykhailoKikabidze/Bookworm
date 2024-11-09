@@ -1,6 +1,5 @@
 <template>
   <div class="title">
-    <br><br>
     Genres
   </div>
   <div class="image-container">
@@ -103,7 +102,6 @@
     </div>
   </div>
   <div class="title">
-    <br>
     POPULAR CLASSICS
   </div>
   <div class="classical-image-container">
@@ -137,121 +135,149 @@
   </div>
 </template>
 
+<script setup>
+</script>
 
-
-  
-  <script setup>
-  </script>
-  
-  <style scoped>
-  .classical-image-container{
-    padding: 20px;
-    text-align: center;
-  }
-  .classical-image-row{
-    display:flex;
-    overflow-x:auto;
-    scroll-snap-type: x mandatory;
-    gap: 15px;
-  }
-  .image-container {
-    display: flex;         
-    justify-content: center; 
-    margin-top: 20px;       
-  }
-  
-  .image-row {
-    display: grid;
-    grid-template-columns: repeat(4,1fr);
-    gap: 28px;
-  }
-  .classical-image-row::-webkit-scrollbar {
-  display: none; /* Hide scrollbar */
+<style scoped>
+.classical-image-container {
+  padding: 20px;
+  text-align: center;
 }
-  .classical-image:hover {
+
+.classical-image-row {
+  display: flex;
+  justify-content: center; /* Center images horizontally */
+  gap: 15px;
+  flex-wrap: wrap; /* Allow wrapping for smaller screens */
+}
+
+.image-container {
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  margin-top: 10px; /* Reduced margin for better layout */
+}
+
+.image-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 columns */
+  gap: 28px;
+  width: 100%;
+  justify-items: center; /* Center images within grid cells */
+}
+
+.classical-image-wrapper {
+  width: 250px;  /* Larger size for classical images */
+  height: 350px; /* Larger height for classical images */
+  flex: 0 0 auto;
+}
+
+.image-wrapper {
+  position: relative;
+  width: 300px; /* Increased size for images in the Genres section */
+  height: 300px; /* Increased height for images in the Genres section */
+  overflow: hidden;
+  border-radius: 15px; /* Rounded corners */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.title {
+  text-align: center;
+  font-size: 50px; /* Lekko większa czcionka dla lepszej widoczności */
+  font-family: 'Lora', serif; /* Elegancka czcionka szeryfowa */
+  font-weight: 700; /* Gruby font dla większej widoczności */
+  color: #303031b9; /* Ciepły złoty kolor */
+  
+  margin-top: 15px; /* Mniejszy margines górny */
+  margin-bottom: 15px; /* Mniejszy margines dolny */
+  letter-spacing: 3px; /* Szersze odstępy między literami */
+  text-transform: uppercase; /* Duże litery dla mocniejszego efektu */
+ 
+}
+
+
+
+
+
+.classical-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Cover images for the classical section */
+  transition: transform 0.3s ease;
+}
+
+.image-wrapper {
+  position: relative;
+  width: 280px; /* Adjusted width for a more balanced layout */
+  height: 280px; /* Adjusted height */
+  overflow: hidden;
+  border-radius: 12px; /* Slightly less rounded corners */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Adjust to fit images properly */
+  border-radius: 15px;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.image-wrapper:hover .image {
   transform: scale(1.05); /* Slightly scale up the image on hover */
 }
-  .classical-image-wrapper {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-    scroll-behavior:smooth;
-    }
-  
-  .title {
-  text-align: center; /* Center the title */
-  font-size: 36px; /* Increase font size */
-  font-family: Garamond, serif;
-  font-weight: 700; /* Use bold weight */
-  color: #4A90E2; /* Change color to a shade you like */
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* Add text shadow */
-  margin-bottom: 5px; /* Space below the title */
-  letter-spacing: 2px; /* Increase spacing between letters */
-  text-transform: uppercase; /* Make text uppercase for a modern look */
+
+.overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 97%;
 }
-  .image-wrapper {
-    position: relative; /* Set relative positioning on the image container */
-    width: 250px; 
-    height: 250px;
-    overflow: hidden; /* Ensures the image doesn't overflow the container */
-    border-radius: 29px; /* Apply border radius here to maintain shape on hover */
-    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth transition for transform and shadow */
+
+.overlay-strip {
+  background-color: rgba(255, 255, 255, 0.7); /* Lighter overlay for better contrast */
+  height: 45px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+}
+
+.overlay-text {
+  color: #333333; /* Darker text for better contrast */
+  font-size: 20px; /* Slightly larger text */
+  font-weight: 600;
+}
+
+.image-wrapper:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.image-wrapper:hover .overlay-strip {
+  background-color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 1200px) {
+  .image-row {
+    grid-template-columns: repeat(3, 1fr); /* 3 columns on medium screens */
   }
-  
-  .classical-image {
-    width: 200px; 
-    height: 290px;
-    object-fit: cover;
-    transition: transform 0.3s ease; /* Smooth transition for image scaling */
+}
+
+@media (max-width: 900px) {
+  .image-row {
+    grid-template-columns: repeat(2, 1fr); /* 2 columns on small screens */
   }
-  .image {
-    width: 100%; 
-    height: 100%;
-    object-fit: cover; 
-    border-radius: 29px; 
-    display: block; 
-    transition: transform 0.3s ease; /* Smooth transition for image scaling */
+}
+
+@media (max-width: 600px) {
+  .image-row {
+    grid-template-columns: 1fr; /* 1 column on extra small screens */
   }
-  
-  .image-wrapper:hover .image {
-    transform: scale(1.05); /* Slightly scale up the image on hover */
-  }
-  
-  .overlay {
-    position: absolute; 
-    top: 50%; /* Center the overlay vertically */
-    left: 50%; /* Center the overlay horizontally */
-    transform: translate(-50%, -50%); /* Center the overlay */
-    width: 97%; /* Allow width to adjust based on content */
-  }
-  
-  .overlay-strip {
-    background-color: rgba(195, 157, 157, 0.707); /* Light grey color for the strip */
-    height: 40px; /* Height of the strip */
-    width: 100%;
-    display: flex; /* Use flexbox for centering text */
-    align-items: center; /* Center text vertically within the strip */
-    justify-content: center; /* Center text horizontally within the strip */
-    border-radius: 5px; /* Optional: round the corners of the strip */
-    transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transition for strip background color and scaling */
-  }
-  
-  .overlay-text {
-    color: black; /* Change text color to contrast with the strip */
-    font-size: 18px; /* Adjust as needed */
-    font-weight: bold; /* Make the text bold */
-  }
-  
-  /* Hover Effects */
- 
-  .image-wrapper:hover {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); /* Add shadow effect on hover */
-  }
-  
-  .image-wrapper:hover .overlay-strip {
-    background-color: rgba(255, 255, 255, 0.9); /* Change overlay background color on hover */
-    transform: scale(1.05); /* Scale up the strip slightly */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Add shadow to the strip */
-    border-radius: 5px; /* Keep corners rounded */
-  }
-  </style>
-  
+}
+</style>

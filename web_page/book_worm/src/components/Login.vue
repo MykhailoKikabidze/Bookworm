@@ -1,12 +1,11 @@
-
 <template>
   <div class="login-container">
     
-    <div v-if="showToast" class="toast"> <!--if there be wrong email or password it will show message about it-->
+    <div v-if="showToast" class="toast">
       {{ errorMessage }}
     </div>
 
-    <div class="overlay"></div> <!-- Warstwa półprzezroczysta nad obrazem tła -->
+    <div class="overlay"></div>
     <div :class="['form-container', { 'login-failed': loginFailed }]">
       <h1>Create account</h1>
       <form @submit.prevent="postData">
@@ -21,23 +20,49 @@
           />
           <span v-if="!isEmailValid && email.length > 0" class="error-message">Please enter a valid email.</span>
         </div>
+        
         <div class="input-group">
           <label for="username">Username</label>
           <input type="text" id="username" v-model="username" required />
         </div>
+
         <div class="input-group">
           <label for="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            v-model="password"
-            :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
-            required
-          />
+          <div class="password-container">
+            <input
+              :type="passwordVisible ? 'text' : 'password'"
+              id="password"
+              v-model="password"
+              :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
+              required
+            />
+            <button type="button" class="toggle-password" @click="togglePasswordVisibility">
+              <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </button>
+          </div>
           <span v-if="!isPasswordValid && password.length > 0" class="error-message">Password must be at least 8 characters.</span>
         </div>
-        <button type="submit" :disabled="!isEmailValid || !isPasswordValid">Create</button>
+
+        <div class="input-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <div class="password-container">
+            <input
+              :type="confirmPasswordVisible ? 'text' : 'password'"
+              id="confirmPassword"
+              v-model="confirmPassword"
+              :class="{ 'input-error': confirmPassword !== password && confirmPassword.length > 0 }"
+              required
+            />
+            <button type="button" class="toggle-password" @click="toggleConfirmPasswordVisibility">
+              <i :class="confirmPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </button>
+          </div>
+          <span v-if="confirmPassword !== password && confirmPassword.length > 0" class="error-message">Passwords do not match.</span>
+        </div>
+
+        <button type="submit" :disabled="!isEmailValid || !isPasswordValid || password !== confirmPassword">Create</button>
       </form>
+
       <p class="signin-link">
         Already have an account? <router-link to="/sign_in">Sign in</router-link>
       </p>
@@ -46,7 +71,6 @@
 </template>
 
 <script>
-// Import validator.js
 import validator from 'validator';
 
 export default {
@@ -54,54 +78,33 @@ export default {
     return {
       username: '',
       password: '',
+      confirmPassword: '',
       email: '',
-      responseData: null,
-      link_backend: "https://8958-94-254-173-8.ngrok-free.app",
-      loginFailed: false, 
-      errorMessage: "", 
-      token: "",
-      showToast: false 
+      loginFailed: false,
+      errorMessage: "",
+      passwordVisible: false, // To toggle password visibility
+      confirmPasswordVisible: false, // To toggle confirm password visibility
+      showToast: false,
     };
   },
   computed: {
-    // Validate email using validator.js
     isEmailValid() {
       return validator.isEmail(this.email);
     },
-    // Validate password with minimum length of 8
     isPasswordValid() {
       return validator.isLength(this.password, { min: 8 });
     }
   },
   methods: {
-    async getToken() {
-
-      const params = new URLSearchParams();
-      params.append("username", this.email);
-      params.append("password", this.password);
-
-      const response = await fetch(this.link_backend + "/token", {
-       method: 'POST',
-       headers: {
-       'Content-Type': 'application/x-www-form-urlencoded',
-         "ngrok-skip-browser-warning": "anyValue"
-       },
-       body: params
-      });
-
-        if (!response.ok) {
-          const data = await response.json();
-          this.token = data.detail;
-        } else {
-          const data = await response.json();
-          this.token = data.access_token;
-          localStorage.setItem('authToken',this.token);
-        }
+    togglePasswordVisibility() {
+      this.passwordVisible = !this.passwordVisible;
+    },
+    toggleConfirmPasswordVisibility() {
+      this.confirmPasswordVisible = !this.confirmPasswordVisible;
     },
     async postData() {
-      // Prevent sending if fields are invalid (shouldn't happen due to button disable)
-      if (!this.isEmailValid || !this.isPasswordValid) {
-        this.errorMessage = "Please correct your email or password.";
+      if (!this.isEmailValid || !this.isPasswordValid || this.password !== this.confirmPassword) {
+        this.errorMessage = "Please correct your email or password, or ensure both passwords match.";
         this.showToast = true;
         setTimeout(() => { this.showToast = false; }, 3000);
         return;
@@ -115,7 +118,7 @@ export default {
           is_moder: true
         });
 
-        const response = await fetch(this.link_backend + "/users", {
+        const response = await fetch("https://8958-94-254-173-8.ngrok-free.app/users", {
           method: 'POST',
           headers: {
             'Content-type': 'application/json',
@@ -126,21 +129,17 @@ export default {
 
         if (!response.ok) {
           const data = await response.json();
-          this.responseData = data.detail;
-          this.loginFailed = true;
-          this.errorMessage = "Invalid email or password. Please try again."; 
+          this.errorMessage = "Error occurred while creating your account.";
           this.showToast = true;
-          setTimeout(() => { this.showToast = false; }, 3000); 
+          setTimeout(() => { this.showToast = false; }, 3000);
         } else {
-          const data = await response.json();
-          this.responseData = data.status;
-          this.loginFailed = false;
-          this.errorMessage = ""; 
+          this.errorMessage = "Account created successfully!";
+          this.showToast = true;
+          setTimeout(() => { this.showToast = false; }, 3000);
         }
 
       } catch (error) {
         console.error("Error posting data:", error);
-        this.loginFailed = true;
         this.errorMessage = "Error connecting to server. Please try again later.";
         this.showToast = true;
         setTimeout(() => { this.showToast = false; }, 3000);
@@ -151,6 +150,47 @@ export default {
 </script>
 
 <style scoped>
+.password-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  padding-right: 35px; /* Adjusted space for the icon */
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  font-family: 'Georgia', serif;
+  background-color: #f5f5f5;
+  color: #2f2f2f;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px; /* Adjust icon to be at the right edge */
+  top: 50%;
+  transform: translateY(-50%); /* Vertically center the icon */
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px; /* Size of the eye icon */
+  color: #2f2f2f;
+  width: 30px; /* Match the size of the icon */
+  height: 30px; /* Square background for the icon */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px; /* Slight rounded corners for the icon background */
+}
+
+.toggle-password:hover {
+  color: #004080; /* Color change on hover */
+  background-color: rgba(0, 64, 128, 0.1); /* Slight background on hover */
+}
 
 .toast {
   position: fixed;
@@ -187,7 +227,7 @@ export default {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-image: url('./pictures/book.jpeg'); /* Obraz tła */
+  background-image: url('./pictures/book.jpeg'); /* Background image */
   background-size: cover;
   background-position: center;
   overflow: hidden;
@@ -199,14 +239,13 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(250, 250, 250, 0.15); /* Jaśniejszy kolor szary */
+  background-color: rgba(250, 250, 250, 0.15); /* Lighter gray background */
   z-index: 1;
 }
 
-/* Stylizacja formularza logowania */
 .form-container {
   position: relative;
-  z-index: 2; /* Ustawienie formularza nad tłem */
+  z-index: 2; /* Ensure the form is above the background */
   background-color: rgba(255, 255, 255, 0.9);
   padding: 30px;
   border-radius: 10px;
@@ -234,17 +273,6 @@ label {
   color: #002f5b;
   margin-bottom: 5px;
   display: block;
-}
-
-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-  font-family: 'Georgia', serif;
-  background-color: #f5f5f5;
-  color: #2f2f2f;
 }
 
 button {
@@ -276,6 +304,6 @@ button:hover {
 }
 
 .signin-link a:hover {
-  color:#004080;
+  color: #004080;
 }
 </style>

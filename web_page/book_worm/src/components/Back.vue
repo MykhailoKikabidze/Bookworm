@@ -1,14 +1,16 @@
 <template>
   <div>
-    <!-- Check if we're on the main page before displaying buttons and response -->
-    <div v-if="isMainPage">
-      <button @click="fetchData">Fetch Data</button>
-      <button @click="postData">Post Data</button>
+    <!-- Input fields to capture username and password from the user -->
+    <input v-model="username" placeholder="Enter username" />
+    <input v-model="password" type="password" placeholder="Enter password" />
 
-      <div v-if="responseData">
-        <pre>{{ responseData }}</pre>
-      </div>
-    </div>
+    <!-- Buttons to call fetchData and getToken functions -->
+    <button @click="getToken">Fetch Data</button>
+    <button @click="changePassword">change anem</button>
+
+    <!-- Display token and any response data -->
+    <h1>{{ token }}</h1>
+    <p>{{ responseData }}</p>
   </div>
 </template>
 
@@ -16,15 +18,13 @@
 export default {
   data() {
     return {
-      responseData: null, // to store the backend response
-      link_backend: "https://b07d-212-191-80-214.ngrok-free.app", // backend URL
+      token: "",
+      responseData: "", 
+      moder: false,
+      username: "", // Add field for username
+      password: "", // Add field for password
+      link_backend: "https://8958-94-254-173-8.ngrok-free.app", // replace with your actual backend URL
     };
-  },
-  computed: {
-    isMainPage() {
-      // You can check for the route path that represents your main page
-      return this.$route.path === '/'; // or '/home', depending on your route
-    }
   },
   methods: {
     async fetchData() {
@@ -42,28 +42,80 @@ export default {
         }
 
         const data = await response.json();
-        this.responseData = data; // store the response in `responseData`
+        this.responseData = data; 
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     },
+    async getToken() {
 
-    async postData() {
+const params = new URLSearchParams();
+params.append("username", "carrot@gmail.com");
+params.append("password", "userpass");
+
+const response = await fetch(this.link_backend + "/token", {
+method: 'POST',
+headers: {
+'Content-Type': 'application/x-www-form-urlencoded',
+"ngrok-skip-browser-warning": "anyValue"
+},
+body: params
+});
+
+  if (!response.ok) {
+    const data = await response.json();
+    this.token = data.detail;
+  } else {
+    const data = await response.json();
+    this.token = data.access_token;
+    localStorage.setItem('authToken',this.token);
+  }
+},
+async changeName() {
+  try {
+    // Initialize URLSearchParams to add the query parameter
+    const params = new URLSearchParams();
+    params.append("new_username", "newstring@gmail.com");
+
+    // Append the query parameters to the URL
+    const url = `${this.link_backend}/users/name?${params.toString()}`;
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        "Authorization": "Bearer " + localStorage.getItem('authToken'),
+        "ngrok-skip-browser-warning": "anyValue"
+      }
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      this.responseData = data;
+    } else {
+      const data = await response.json();
+      this.responseData = data;
+    }
+  } catch (error) {
+    console.error("Error posting data:", error);
+  }
+}
+,
+
+    async changePassword() {
       try {
-        const jsonData = JSON.stringify({
-          name: "test1",
-          password: "test1",
-          login: "test1",
-          is_moder: true,
-        });
+        const params = new URLSearchParams();
+params.append("new_password", "newstring");
 
-        const response = await fetch(this.link_backend + "/users", {
-          method: 'POST',
-          headers: {
-            'Content-type': 'application/json',
-            "ngrok-skip-browser-warning": "anyValue"
-          },
-          body: jsonData,
+const url = `${this.link_backend}/users/password?${params.toString()}`;
+
+const response = await fetch(url, {method: 'PUT',
+headers: {
+'Content-Type': 'application/x-www-form-urlencoded',
+"Authorization": "Bearer " + localStorage.getItem('authToken'),
+"ngrok-skip-browser-warning": "anyValue"
+},
+body: params
         });
 
         if (!response.ok) {
@@ -71,7 +123,7 @@ export default {
           this.responseData = data.detail;
         } else {
           const data = await response.json();
-          this.responseData = data.status;
+          this.responseData = data;
         }
       } catch (error) {
         console.error("Error posting data:", error);

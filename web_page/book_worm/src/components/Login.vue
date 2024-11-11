@@ -56,9 +56,10 @@ export default {
       password: '',
       email: '',
       responseData: null,
-      link_backend: "https://69e5-212-191-80-243.ngrok-free.app",
+      link_backend: "https://8958-94-254-173-8.ngrok-free.app",
       loginFailed: false, 
       errorMessage: "", 
+      token: "",
       showToast: false 
     };
   },
@@ -73,6 +74,30 @@ export default {
     }
   },
   methods: {
+    async getToken() {
+
+      const params = new URLSearchParams();
+      params.append("username", this.email);
+      params.append("password", this.password);
+
+      const response = await fetch(this.link_backend + "/token", {
+       method: 'POST',
+       headers: {
+       'Content-Type': 'application/x-www-form-urlencoded',
+         "ngrok-skip-browser-warning": "anyValue"
+       },
+       body: params
+      });
+
+        if (!response.ok) {
+          const data = await response.json();
+          this.token = data.detail;
+        } else {
+          const data = await response.json();
+          this.token = data.access_token;
+          localStorage.setItem('authToken',this.token);
+        }
+    },
     async postData() {
       // Prevent sending if fields are invalid (shouldn't happen due to button disable)
       if (!this.isEmailValid || !this.isPasswordValid) {

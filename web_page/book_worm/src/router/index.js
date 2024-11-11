@@ -10,7 +10,6 @@ import HadRead from '../components/HadRead.vue'; // Import Had Read component
 import Topics from '../components/Topics.vue'; // Import Topics component
 import Contact from '../components/Contact.vue'; // Import Contact component
 import Login from '../components/Login.vue'; // Import Login component
-import SignUp from '../components/SignIn.vue'; // Import Sign Up component
 import SignIn from '../components/SignIn.vue';
 
 const routes = [

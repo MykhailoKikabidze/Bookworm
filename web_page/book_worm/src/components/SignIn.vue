@@ -1,19 +1,19 @@
 <template>
   <div class="login-container">
-    <div class="background-image"></div> <!-- Background image with opacity -->
-    <div class="overlay"></div> <!-- Semi-transparent overlay -->
+    <div class="background-image"></div>
+    <div class="overlay"></div>
     <div class="form-container">
       <h1>Sign in</h1>
       <form @submit.prevent="handleSubmit">
         <div class="input-group">
-          <label for="username">Username</label>
+          <label for="username">Email</label>
           <input type="text" id="username" v-model="username" required />
         </div>
         <div class="input-group">
           <label for="password">Password</label>
           <input type="password" id="password" v-model="password" required />
         </div>
-        <button type="submit">Sign in</button>
+        <button @click="getToken" type="submit">Sign in</button>
       </form>
       <p class="login-link">
         Don't have an account? <router-link to="/login">Create account</router-link>
@@ -29,15 +29,70 @@ export default {
     return {
       username: '',
       password: '',
+      link_backend: "https://8958-94-254-173-8.ngrok-free.app",
+      moder: false,
+      responseData: "",
     };
   },
   methods: {
-    handleSubmit() {
-      console.log('Logging in with', this.username, this.password);
+    async authorization() {
+      try {
+        const response = await fetch(this.link_backend + "/users/me", {
+          method: 'GET',
+          headers: {
+            'Content-type': 'application/json',
+            "Authorization": "Bearer " + localStorage.getItem('authToken'),
+            "ngrok-skip-browser-warning": "anyValue"
+          },
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          this.responseData = data.detail;
+        } else {
+          const data = await response.json();
+          this.moder = data.is_moder;
+          
+          // Redirect to main page (e.g., App.vue) upon successful authorization
+          this.$router.push('/'); // Adjust "/main" to the actual route of your main page
+        }
+      } catch (error) {
+        console.error("Error during authorization:", error);
+      }
     },
-  },
+    async getToken() {
+      const params = new URLSearchParams();
+      params.append("username", this.username);
+      params.append("password", this.password);
+
+      try {
+        const response = await fetch(this.link_backend + "/token", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            "ngrok-skip-browser-warning": "anyValue"
+          },
+          body: params
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          this.responseData = data.detail;
+        } else {
+          const data = await response.json();
+          localStorage.setItem('authToken', data.access_token);
+
+          // Call authorization after storing token
+          await this.authorization();
+        }
+      } catch (error) {
+        console.error("Error fetching token:", error);
+      }
+    }
+  }
 };
 </script>
+
 
 <style scoped>
 .login-container {

@@ -1,6 +1,5 @@
 <template>
   <div id="app">
-    <!-- Always show the header -->
     <header class="navbar">
       <router-link to="/" class="logo">BOOK WORM</router-link>
       <nav>
@@ -16,14 +15,36 @@
             <router-link to="/had-read"><i class="fas fa-check-square"></i> Had Read</router-link>
           </div>
         </div>
-
         <router-link to="/topics"><i class="fas fa-tag"></i> Topics</router-link>
         <router-link to="/contact"><i class="fas fa-envelope"></i> Contact</router-link>
-        <router-link to="/sign_in"><i class="fas fa-sign-in-alt"></i> Log In</router-link>
+
+        <!-- Settings dropdown visible only if logged in -->
+        <div class="settings-dropdown" v-if="isLoggedIn">
+          <a href="#" class="settings-button">
+            <i class="fas fa-cogs"></i> Settings
+          </a>
+          <div class="settings-menu">
+            <form @submit.prevent="updateSettings">
+              <div class="form-group">
+                <label for="username">New Username</label>
+                <input type="text" id="username" v-model="username" required />
+              </div>
+              <div class="form-group">
+                <label for="email">New Email</label>
+                <input type="email" id="email" v-model="email" required />
+              </div>
+              <button type="submit">Save Changes</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Log In / Log Out Button -->
+        <router-link :to="isLoggedIn ? '/' : '/sign_in'" @click="toggleLogin">
+          <i class="fas fa-sign-in-alt"></i> {{ isLoggedIn ? 'Log Out' : 'Log In' }}
+        </router-link>
       </nav>
     </header>
 
-    <!-- Conditionally render the banner only on 'Home' route -->
     <section v-if="$route.name === 'Home'" class="banner">
       <div class="banner-content">
         <h1>{{ displayedText.split(',').join(',\n') }}</h1>
@@ -41,11 +62,14 @@ export default {
   name: 'App',
   data() {
     return {
-      fullText: 'A SOFA, A GOOD BOOK, AND YOU.', // Full text for typing effect
-      displayedText: '', // Text to be displayed
-      typingIndex: 0, // Index to track typing
-      typingSpeed: 100, // Speed of typing effect
-      searchQuery: '' // Search query
+      fullText: 'A SOFA, A GOOD BOOK, AND YOU.',
+      displayedText: '',
+      typingIndex: 0,
+      typingSpeed: 100,
+      searchQuery: '',
+      isLoggedIn: false, // User login status
+      username: '',
+      email: ''
     };
   },
   methods: {
@@ -58,6 +82,23 @@ export default {
     },
     performSearch() {
       console.log(`Searching for: ${this.searchQuery}`);
+      // Implement your actual search functionality here (e.g., API call)
+    },
+    toggleLogin() {
+      if (this.isLoggedIn) {
+        const confirmation = confirm("Are you sure you want to log out?");
+        if (confirmation) {
+          this.isLoggedIn = false;
+          // Add logout logic if necessary
+        }
+      } else {
+        this.isLoggedIn = true;
+        // Add login logic if necessary
+      }
+    },
+    updateSettings() {
+      alert(`Changes saved!\nUsername: ${this.username}\nEmail: ${this.email}`);
+      // Add logic to save settings (e.g., update user profile)
     }
   },
   mounted() {
@@ -74,37 +115,36 @@ export default {
   box-sizing: border-box;
 }
 
-/* Ensure the body and html are full width */
 html, body {
   width: 100%;
   height: 100%;
-  overflow-x: hidden; /* Prevent horizontal scrolling */
+  overflow-x: hidden;
 }
 
 /* Fullscreen banner styling */
 section.banner {
   background-image: url('/src/components/icons/book-sofa.jpg');
-  background-size: cover; /* Ensure the background image covers the whole section */
-  background-position: center center; /* Center the background image */
-  width: 100vw; /* Use full width */
-  height: 100vh; /* Ensure it takes full screen height */
-  display: flex; /* Use flexbox */
-  justify-content: center; /* Center contents horizontally */
-  align-items: center; /* Center contents vertically */
-  margin: 0; /* Remove margins */
+  background-size: cover;
+  background-position: center center;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
   z-index: 1;
 }
 
 .banner-content {
   text-align: center;
-  color: #002f5b; /* Dark blue color */
+  color: #002f5b;
 }
 
 /* Font Import */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
 
 .banner-content h1 {
-  font-family: 'Playfair Display', serif; /* Updated font */
+  font-family: 'Playfair Display', serif;
   font-size: 77px;
   font-weight: 700;
   color: #ffffff;
@@ -112,28 +152,29 @@ section.banner {
   margin-bottom: 0;
   text-transform: uppercase;
   letter-spacing: 2px;
-  white-space: pre-wrap; /* Allows for line breaks in the text */
+  white-space: pre-wrap;
 }
 
 /* Navbar Styling */
 .navbar {
   display: flex;
-  justify-content: space-between; /* Adjust for even spacing */
+  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap; /* Allow navbar items to wrap */
+  flex-wrap: wrap;
   padding: 15px 40px;
 }
 
 .navbar .logo {
   font-size: 26px;
   font-weight: bold;
-  color: #002f5b; /* Dark blue for contrast */
-  text-decoration: none; /* Remove underline */
+  color: #002f5b;
+  text-decoration: none;
 }
 
 .navbar nav {
-  display: flex; /* Use flexbox for nav items */
-  position: relative; /* Ensure relative positioning for dropdown */
+  display: flex;
+  position: relative;
+  flex-direction: column;
 }
 
 .navbar nav a {
@@ -148,86 +189,75 @@ section.banner {
 }
 
 .navbar nav a i {
-  margin-right: 8px; /* Space between icon and text */
-  font-size: 18px; /* Adjust icon size */
-  vertical-align: middle; /* Align icon with text */
+  margin-right: 8px;
+  font-size: 18px;
+  vertical-align: middle;
 }
 
-/* Dropdown styles */
 .dropdown {
-  position: relative; /* Relative positioning for the dropdown */
+  position: relative;
 }
 
-/* Dropdown toggle - icon and text alignment */
 .dropdown-toggle {
   display: flex;
-  align-items: center; /* Align icon and text vertically */
+  align-items: center;
   padding: 10px 15px;
   cursor: pointer;
   border-radius: 20px;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Icon styling */
 .dropdown-toggle i {
-  margin-right: 8px; /* Space between icon and text */
-  font-size: 20px; /* Icon size */
-}
-
-/* Adjust the size of the text if needed */
-.dropdown-toggle {
-  font-size: 18px;
+  margin-right: 8px;
+  font-size: 20px;
 }
 
 .dropdown:hover .dropdown-menu {
-  display: block; /* Show dropdown on hover */
+  display: block;
 }
 
 .dropdown-menu {
-  display: none; /* Hide the dropdown by default */
+  display: none;
   position: absolute;
-  top: 100%; /* Position below the toggle */
-  left: 0; /* Align to the left edge */
-  right: 0; /* Ensure it doesn’t overflow */
-  background-color: white; /* White background */
-  border: 1px solid #002f5b; /* Border color */
-  border-radius: 8px; /* Rounded corners */
-  z-index: 10; /* Ensure it appears above other content */
-  width: 180px; /* Set width for more space */
-  max-height: 300px; /* Limit max height */
-  overflow-y: auto; /* Add scroll if the menu is too long */
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #002f5b;
+  border-radius: 8px;
+  z-index: 10;
+  width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .dropdown-menu a {
-  display: flex; /* Use flexbox to align icon and text */
-  align-items: center; /* Center items vertically */
-  justify-content: flex-start; /* Align items to the left */
-  padding: 10px 10px; /* Add slight padding */
-  color: #002f5b; /* Text color */
-  text-decoration: none; /* Remove text underline */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 10px 10px;
+  color: #002f5b;
+  text-decoration: none;
   transition: background-color 0.3s ease;
   text-align: left;
   overflow: hidden;
-  white-space: nowrap; /* Prevent text wrapping */
-  text-overflow: ellipsis; /* Add ellipsis for overflow text */
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .dropdown-menu a i {
-  margin-right: 5px; /* Space between icon and text */
-  font-size: 18px; /* Icon size */
+  margin-right: 5px;
+  font-size: 18px;
 }
 
-/* Navbar link hover effect */
 .navbar nav a:hover {
   color: #ffffff;
-  animation: blink 0.8s ease-in-out infinite; /* Add blinking animation */
 }
 
 .dropdown-menu a:hover {
-  background-color: rgba(235, 184, 172, 0.5); /* Light color on hover */
+  background-color: rgba(235, 184, 172, 0.5);
 }
 
-/* Pseudo-element for rounded background */
 .navbar nav a::before {
   content: "";
   position: absolute;
@@ -246,61 +276,98 @@ section.banner {
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* Search Bar Styling */
+/* Settings Dropdown Styles */
+.settings-dropdown {
+  position: relative;
+}
+
+.settings-button {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 20px;
+}
+
+.settings-button i {
+  margin-right: 8px;
+}
+
+.settings-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #002f5b;
+  border-radius: 8px;
+  z-index: 10;
+  width: 250px;
+  padding: 8px 12px; /* Reduced padding */
+  font-family: 'Playfair Display', serif; /* Matching font with your site */
+  font-size: 16px; /* Adjust the font size to match your site */
+}
+
+.settings-dropdown:hover .settings-menu {
+  display: block;
+}
+
+.settings-menu .form-group {
+  margin-bottom: 10px;
+}
+
+
+
+.settings-menu input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.settings-menu button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background-color: #002f5b;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.settings-menu button:hover {
+  background-color: #335f8d;
+}
+
 .search-bar {
   display: flex;
   justify-content: center;
-  margin-top: 5vh;
+  margin-top: 20px;
 }
 
 .search-bar input {
-  padding: 15px 20px;
-  font-size: 1.2rem;
-  border: 2px hsla(55, 63%, 68%, 0.418);
-  border-radius: 30px 0 0 30px;
-  outline: none;
-  width: 40vw;
-  transition: border-color 0.3s ease, background-color 0.3s ease;
-  background-color: rgba(255, 255, 255, 0.8);
-}
-
-.search-bar input:focus {
-  border-color: #ebb8ac;
-  background-color: rgba(255, 255, 255, 1);
+  width: 300px;
+  padding: 10px;
+  border: 2px solid #ccc;
+  border-radius: 20px;
+  margin-right: 10px;
 }
 
 .search-bar button {
-  padding: 15px 30px;
-  background-color: hsla(55, 63%, 68%, 0.418);
-  color: #ffffff;
+  padding: 10px 20px;
   border: none;
-  border-radius: 0 30px 30px 0;
+  border-radius: 20px;
+  background-color: #002f5b;
+  color: white;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  font-size: 1.2rem;
 }
 
 .search-bar button:hover {
-  background-color: rgba(235, 184, 172, 0.8);
+  background-color: #335f8d;
 }
 
-@media (max-width: 768px) {
-  .search-bar input {
-    width: 70vw;
-  }
-
-  .search-bar button {
-    font-size: 1rem;
-  }
-
-  .navbar nav a {
-    font-size: 16px;
-    margin-left: 20px;
-  }
-
-  .dropdown-menu {
-    width: 100%; /* Ensure dropdown is full width on small screens */
-  }
-}
 
 </style>

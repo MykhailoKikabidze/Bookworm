@@ -1,6 +1,5 @@
 <template>
   <div class="login-container">
-    
     <div v-if="showToast" class="toast">
       {{ errorMessage }}
     </div>
@@ -20,49 +19,44 @@
           />
           <span v-if="!isEmailValid && email.length > 0" class="error-message">Please enter a valid email.</span>
         </div>
-        
         <div class="input-group">
           <label for="username">Username</label>
           <input type="text" id="username" v-model="username" required />
         </div>
-
         <div class="input-group">
           <label for="password">Password</label>
           <div class="password-container">
             <input
-              :type="passwordVisible ? 'text' : 'password'"
+              :type="isPasswordVisible ? 'text' : 'password'"
               id="password"
               v-model="password"
-              :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
+              :class="{ 'input-error': password.length > 0 && password.length < 8 }"
               required
             />
-            <button type="button" class="toggle-password" @click="togglePasswordVisibility">
-              <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-            </button>
+            <span @click="togglePasswordVisibility('password')" class="eye-icon">
+              <i :class="isPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </span>
           </div>
-          <span v-if="!isPasswordValid && password.length > 0" class="error-message">Password must be at least 8 characters.</span>
+          <span v-if="password.length > 0 && password.length < 8" class="error-message">Password must be at least 8 characters.</span>
         </div>
-
         <div class="input-group">
-          <label for="confirmPassword">Confirm Password</label>
+          <label for="passwordConfirmation">Confirm Password</label>
           <div class="password-container">
             <input
-              :type="confirmPasswordVisible ? 'text' : 'password'"
-              id="confirmPassword"
-              v-model="confirmPassword"
-              :class="{ 'input-error': confirmPassword !== password && confirmPassword.length > 0 }"
+              :type="isPasswordVisible ? 'text' : 'password'"
+              id="passwordConfirmation"
+              v-model="passwordConfirmation"
+              :class="{ 'input-error': passwordConfirmation !== password }"
               required
             />
-            <button type="button" class="toggle-password" @click="toggleConfirmPasswordVisibility">
-              <i :class="confirmPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-            </button>
+            <span @click="togglePasswordVisibility('passwordConfirmation')" class="eye-icon">
+              <i :class="isPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </span>
           </div>
-          <span v-if="confirmPassword !== password && confirmPassword.length > 0" class="error-message">Passwords do not match.</span>
+          <span v-if="passwordConfirmation !== password" class="error-message">Passwords do not match.</span>
         </div>
-
-        <button type="submit" :disabled="!isEmailValid || !isPasswordValid || password !== confirmPassword">Create</button>
+        <button type="submit" :disabled="!isEmailValid || password.length < 8 || password !== passwordConfirmation">Create</button>
       </form>
-
       <p class="signin-link">
         Already have an account? <router-link to="/sign_in">Sign in</router-link>
       </p>
@@ -78,33 +72,26 @@ export default {
     return {
       username: '',
       password: '',
-      confirmPassword: '',
+      passwordConfirmation: '',
       email: '',
-      loginFailed: false,
-      errorMessage: "",
-      passwordVisible: false, // To toggle password visibility
-      confirmPasswordVisible: false, // To toggle confirm password visibility
+      responseData: null,
+      link_backend: "https://459d-94-254-173-8.ngrok-free.app",
+      loginFailed: false, 
+      errorMessage: "", 
+      token: "",
       showToast: false,
+      isPasswordVisible: false // To control password visibility
     };
   },
   computed: {
     isEmailValid() {
       return validator.isEmail(this.email);
-    },
-    isPasswordValid() {
-      return validator.isLength(this.password, { min: 8 });
     }
   },
   methods: {
-    togglePasswordVisibility() {
-      this.passwordVisible = !this.passwordVisible;
-    },
-    toggleConfirmPasswordVisibility() {
-      this.confirmPasswordVisible = !this.confirmPasswordVisible;
-    },
     async postData() {
-      if (!this.isEmailValid || !this.isPasswordValid || this.password !== this.confirmPassword) {
-        this.errorMessage = "Please correct your email or password, or ensure both passwords match.";
+      if (!this.isEmailValid || this.password.length < 8 || this.password !== this.passwordConfirmation) {
+        this.errorMessage = "Please correct your email, password, or ensure both passwords match.";
         this.showToast = true;
         setTimeout(() => { this.showToast = false; }, 3000);
         return;
@@ -118,7 +105,7 @@ export default {
           is_moder: true
         });
 
-        const response = await fetch("https://8958-94-254-173-8.ngrok-free.app/users", {
+        const response = await fetch(this.link_backend + "/users", {
           method: 'POST',
           headers: {
             'Content-type': 'application/json',
@@ -129,69 +116,36 @@ export default {
 
         if (!response.ok) {
           const data = await response.json();
-          this.errorMessage = "Error occurred while creating your account.";
+          this.responseData = data.detail;
+          this.loginFailed = true;
+          this.errorMessage = "Invalid email or password. Please try again."; 
           this.showToast = true;
-          setTimeout(() => { this.showToast = false; }, 3000);
+          setTimeout(() => { this.showToast = false; }, 3000); 
         } else {
-          this.errorMessage = "Account created successfully!";
-          this.showToast = true;
-          setTimeout(() => { this.showToast = false; }, 3000);
-        }
+          const data = await response.json();
+          this.responseData = data.status;
+          this.loginFailed = false;
+          this.errorMessage = ""; 
 
+          // Redirect to main page on success
+          this.$router.push('/');
+        }
       } catch (error) {
         console.error("Error posting data:", error);
+        this.loginFailed = true;
         this.errorMessage = "Error connecting to server. Please try again later.";
         this.showToast = true;
         setTimeout(() => { this.showToast = false; }, 3000);
       }
+    },
+    togglePasswordVisibility(field) {
+      this.isPasswordVisible = this.isPasswordVisible === false ? true : false;
     }
   }
 };
 </script>
 
 <style scoped>
-.password-container {
-  display: flex;
-  align-items: center;
-  position: relative;
-  width: 100%;
-}
-
-input {
-  width: 100%;
-  padding: 10px;
-  padding-right: 35px; /* Adjusted space for the icon */
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-  font-family: 'Georgia', serif;
-  background-color: #f5f5f5;
-  color: #2f2f2f;
-}
-
-.toggle-password {
-  position: absolute;
-  right: 10px; /* Adjust icon to be at the right edge */
-  top: 50%;
-  transform: translateY(-50%); /* Vertically center the icon */
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 18px; /* Size of the eye icon */
-  color: #2f2f2f;
-  width: 30px; /* Match the size of the icon */
-  height: 30px; /* Square background for the icon */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 5px; /* Slight rounded corners for the icon background */
-}
-
-.toggle-password:hover {
-  color: #004080; /* Color change on hover */
-  background-color: rgba(0, 64, 128, 0.1); /* Slight background on hover */
-}
-
 .toast {
   position: fixed;
   top: 20px;
@@ -206,12 +160,10 @@ input {
   font-weight: bold;
 }
 
-/* Red border for invalid inputs */
 .input-error {
   border: 2px solid red;
 }
 
-/* Error message styling */
 .error-message {
   color: red;
   font-size: 12px;
@@ -227,7 +179,7 @@ input {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-image: url('./pictures/book.jpeg'); /* Background image */
+  background-image: url('./pictures/book.jpeg');
   background-size: cover;
   background-position: center;
   overflow: hidden;
@@ -239,13 +191,13 @@ input {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(250, 250, 250, 0.15); /* Lighter gray background */
+  background-color: rgba(250, 250, 250, 0.15);
   z-index: 1;
 }
 
 .form-container {
   position: relative;
-  z-index: 2; /* Ensure the form is above the background */
+  z-index: 2;
   background-color: rgba(255, 255, 255, 0.9);
   padding: 30px;
   border-radius: 10px;
@@ -275,12 +227,35 @@ label {
   display: block;
 }
 
+input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  font-family: 'Georgia', serif;
+  background-color: #f5f5f5;
+  color: #2f2f2f;
+}
+
+.password-container {
+  position: relative;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
 button {
   width: 100%;
   padding: 10px;
   border: none;
   border-radius: 5px;
-  background-color: #002f5b; /* Original button color */
+  background-color: #002f5b;
   color: white;
   font-size: 18px;
   font-family: 'Georgia', serif;
@@ -289,7 +264,7 @@ button {
 }
 
 button:hover {
-  background-color: #004080; /* Darker navy blue on hover */
+  background-color: #004080;
 }
 
 .signin-link {
@@ -304,6 +279,6 @@ button:hover {
 }
 
 .signin-link a:hover {
-  color: #004080;
+  color:#004080;
 }
 </style>

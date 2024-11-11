@@ -24,7 +24,9 @@ const routes = [
   { path: '/topics', name: 'Topics', component: Topics }, // New route for Topics page
   { path: '/contact', name: 'Contact', component: Contact }, // New route for Contact page
   { path: '/sign_in', name: 'SignIN', component: SignIn }, // New route for Sign In page
-  { path: '/login', name: 'Login', component: Login } // New route for Login page
+  { path: '/login', name: 'Login', component: Login },
+  
+   // New route for Login page
 ];
 
 const router = createRouter({

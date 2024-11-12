@@ -88,12 +88,13 @@ export default {
       if (this.isLoggedIn) {
         const confirmation = confirm("Are you sure you want to log out?");
         if (confirmation) {
+          // Clear the token from localStorage
+          localStorage.removeItem("authToken");
           this.isLoggedIn = false;
-          // Add logout logic if necessary
         }
       } else {
-        this.isLoggedIn = true;
-        // Add login logic if necessary
+        // Navigate to the login page if not logged in
+        this.$router.push('/sign_in');
       }
     },
     updateSettings() {
@@ -102,10 +103,18 @@ export default {
     }
   },
   mounted() {
+    // Check if there's a valid token in localStorage when the app is mounted
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      this.isLoggedIn = true; // Set the user as logged in if a token is present
+    } else {
+      this.isLoggedIn = false; // Ensure logged-out state if no token
+    }
     this.typeText();
   }
 };
 </script>
+
 
 <style>
 /* Reset */
@@ -174,7 +183,7 @@ section.banner {
 .navbar nav {
   display: flex;
   position: relative;
-  flex-direction: column;
+  /* flex-direction: column; */
 }
 
 .navbar nav a {

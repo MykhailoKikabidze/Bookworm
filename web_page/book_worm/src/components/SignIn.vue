@@ -11,19 +11,9 @@
         </div>
         <div class="input-group">
           <label for="password">Password</label>
-          <div class="password-container">
-            <input 
-              :type="passwordVisible ? 'text' : 'password'" 
-              id="password" 
-              v-model="password" 
-              required 
-            />
-            <button type="button" class="toggle-password" @click="togglePasswordVisibility">
-              <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-            </button>
-          </div>
+          <input type="password" id="password" v-model="password" required />
         </div>
-        <button @click="getToken" type="submit">Sign in</button>
+        <button type="submit">Sign in</button>
       </form>
       <p class="login-link">
         Don't have an account? <router-link to="/login">Create account</router-link>
@@ -39,40 +29,14 @@ export default {
     return {
       username: '',
       password: '',
-      passwordVisible: false, // State to toggle visibility of password
-      link_backend: "https://459d-94-254-173-8.ngrok-free.app",
+      link_backend: "https://4fd3-94-254-173-8.ngrok-free.app",
       moder: false,
       responseData: "",
     };
   },
   methods: {
-    togglePasswordVisibility() {
-      this.passwordVisible = !this.passwordVisible;
-    },
-    async authorization() {
-      try {
-        const response = await fetch(this.link_backend + "/users/me", {
-          method: 'GET',
-          headers: {
-            'Content-type': 'application/json',
-            "Authorization": "Bearer " + localStorage.getItem('authToken'),
-            "ngrok-skip-browser-warning": "anyValue"
-          },
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          this.responseData = data.detail;
-        } else {
-          const data = await response.json();
-          this.moder = data.is_moder;
-          
-          // Redirect to main page (e.g., App.vue) upon successful authorization
-          this.$router.push('/'); // Adjust "/main" to the actual route of your main page
-        }
-      } catch (error) {
-        console.error("Error during authorization:", error);
-      }
+    async handleSubmit() {
+      await this.getToken();
     },
     async getToken() {
       const params = new URLSearchParams();
@@ -96,16 +60,41 @@ export default {
           const data = await response.json();
           localStorage.setItem('authToken', data.access_token);
 
-          // Call authorization after storing token
+          // Step 2: Call authorization after storing token
           await this.authorization();
         }
       } catch (error) {
         console.error("Error fetching token:", error);
       }
+    },
+    async authorization() {
+      try {
+        const response = await fetch(this.link_backend + "/users/me", {
+          method: 'GET',
+          headers: {
+            'Content-type': 'application/json',
+            "Authorization": "Bearer " + localStorage.getItem('authToken'),
+            "ngrok-skip-browser-warning": "anyValue"
+          },
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          this.responseData = data.detail;
+        } else {
+          const data = await response.json();
+          this.moder = data.is_moder;
+
+          this.$router.push('/'); // Adjust to the actual route of your main page if different
+        }
+      } catch (error) {
+        console.error("Error during authorization:", error);
+      }
     }
   }
 };
 </script>
+
 
 <style scoped>
 .login-container {
@@ -114,7 +103,7 @@ export default {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-image: url('./pictures/book_log_in.jpg'); /* Background image */
+  background-image: url('./pictures/book_log_in.jpg'); /* Obraz tła */
   background-size: cover;
   background-position: center;
   overflow: hidden;
@@ -140,13 +129,13 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(250, 250, 250, 0.15); /* Lighter gray */
+  background-color: rgba(250, 250, 250, 0.15); /* Jaśniejszy kolor szary */
   z-index: 1;
 }
 
 .form-container {
   position: relative;
-  z-index: 2; /* Ensure the form is above the background */
+  z-index: 2; /* Ustawienie formularza nad tłem */
   background-color: rgba(255, 255, 255, 0.9);
   padding: 30px;
   border-radius: 10px;
@@ -186,37 +175,6 @@ input {
   color: #2f2f2f;
 }
 
-.password-container {
-  display: flex;
-  align-items: center;
-  position: relative;
-  width: 100%;
-}
-
-.toggle-password {
-  position: absolute;
-  right: 10px; /* Adjust icon to be at the right edge */
-  top: 50%;
-  transform: translateY(-50%); /* Vertically center the icon */
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 18px; /* Size of the eye icon */
-  color: #2f2f2f;
-  width: 30px; /* Match the size of the icon */
-  height: 30px; /* Square background for the icon */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 5px; /* Slight rounded corners for the icon background */
-}
-
-.toggle-password:hover {
-  color: #004080; /* Color change on hover */
-  background-color: rgba(0, 64, 128, 0.1); /* Slight background on hover */
-}
-
-
 button {
   width: 100%;
   padding: 10px;
@@ -235,7 +193,7 @@ button:hover {
 }
 
 .login-link {
-  margin-top: 15px;
+ margin-top: 15px;
   font-size: 14px;
 }
 
@@ -246,6 +204,6 @@ button:hover {
 }
 
 .login-link a:hover {
-  color: #004080;
+  color:#004080;
 }
 </style>

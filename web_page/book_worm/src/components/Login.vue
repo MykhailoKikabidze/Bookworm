@@ -1,10 +1,12 @@
+
 <template>
   <div class="login-container">
-    <div v-if="showToast" class="toast">
+    
+    <div v-if="showToast" class="toast"> <!--if there be wrong email or password it will show message about it-->
       {{ errorMessage }}
     </div>
 
-    <div class="overlay"></div>
+    <div class="overlay"></div> <!-- Warstwa półprzezroczysta nad obrazem tła -->
     <div :class="['form-container', { 'login-failed': loginFailed }]">
       <h1>Create account</h1>
       <form @submit.prevent="postData">
@@ -25,37 +27,16 @@
         </div>
         <div class="input-group">
           <label for="password">Password</label>
-          <div class="password-container">
-            <input
-              :type="isPasswordVisible ? 'text' : 'password'"
-              id="password"
-              v-model="password"
-              :class="{ 'input-error': password.length > 0 && password.length < 8 }"
-              required
-            />
-            <span @click="togglePasswordVisibility('password')" class="eye-icon">
-              <i :class="isPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-            </span>
-          </div>
-          <span v-if="password.length > 0 && password.length < 8" class="error-message">Password must be at least 8 characters.</span>
+          <input
+            type="password"
+            id="password"
+            v-model="password"
+            :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
+            required
+          />
+          <span v-if="!isPasswordValid && password.length > 0" class="error-message">Password must be at least 8 characters.</span>
         </div>
-        <div class="input-group">
-          <label for="passwordConfirmation">Confirm Password</label>
-          <div class="password-container">
-            <input
-              :type="isPasswordVisible ? 'text' : 'password'"
-              id="passwordConfirmation"
-              v-model="passwordConfirmation"
-              :class="{ 'input-error': passwordConfirmation !== password }"
-              required
-            />
-            <span @click="togglePasswordVisibility('passwordConfirmation')" class="eye-icon">
-              <i :class="isPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-            </span>
-          </div>
-          <span v-if="passwordConfirmation !== password" class="error-message">Passwords do not match.</span>
-        </div>
-        <button type="submit" :disabled="!isEmailValid || password.length < 8 || password !== passwordConfirmation">Create</button>
+        <button @click="postData" type="submit" :disabled="!isEmailValid || !isPasswordValid">Create</button>
       </form>
       <p class="signin-link">
         Already have an account? <router-link to="/sign_in">Sign in</router-link>
@@ -65,6 +46,7 @@
 </template>
 
 <script>
+// Import validator.js
 import validator from 'validator';
 
 export default {
@@ -72,26 +54,60 @@ export default {
     return {
       username: '',
       password: '',
-      passwordConfirmation: '',
       email: '',
       responseData: null,
-      link_backend: "https://459d-94-254-173-8.ngrok-free.app",
+      link_backend: "https://4fd3-94-254-173-8.ngrok-free.app",
       loginFailed: false, 
       errorMessage: "", 
       token: "",
-      showToast: false,
-      isPasswordVisible: false // To control password visibility
+      sps: "",
+      showToast: false 
     };
   },
   computed: {
+    // Validate email using validator.js
     isEmailValid() {
       return validator.isEmail(this.email);
+    },
+    // Validate password with minimum length of 8
+    isPasswordValid() {
+      return validator.isLength(this.password, { min: 8 });
     }
   },
   methods: {
+    async getToken() {
+  const params = new URLSearchParams();
+  params.append("username", this.email);
+  params.append("password", this.password);
+
+  const response = await fetch(this.link_backend + "/token", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      "ngrok-skip-browser-warning": "anyValue"
+    },
+    body: params
+  });
+
+  if (response.ok) {
+    const data = await response.json();
+    this.token = data.access_token;
+    localStorage.setItem('authToken', this.token);  // Store token in localStorage
+
+    // Redirect to home page on successful login
+    this.$router.push('/');  // or any other route you prefer after login
+  } else {
+    const data = await response.json();
+    this.token = data.detail;
+    this.errorMessage = "Failed to retrieve token. Please try again.";
+    this.showToast = true;
+    setTimeout(() => { this.showToast = false; }, 3000);
+  }
+},
     async postData() {
-      if (!this.isEmailValid || this.password.length < 8 || this.password !== this.passwordConfirmation) {
-        this.errorMessage = "Please correct your email, password, or ensure both passwords match.";
+      // Prevent sending if fields are invalid (shouldn't happen due to button disable)
+      if (!this.isEmailValid || !this.isPasswordValid) {
+        this.errorMessage = "Please correct your email or password.";
         this.showToast = true;
         setTimeout(() => { this.showToast = false; }, 3000);
         return;
@@ -114,22 +130,18 @@ export default {
           body: jsonData
         });
 
-        if (!response.ok) {
+        if (response.ok) {
+          // If account creation succeeds, call getToken to retrieve the token
+          await this.getToken();
+        } else {
           const data = await response.json();
           this.responseData = data.detail;
           this.loginFailed = true;
           this.errorMessage = "Invalid email or password. Please try again."; 
           this.showToast = true;
           setTimeout(() => { this.showToast = false; }, 3000); 
-        } else {
-          const data = await response.json();
-          this.responseData = data.status;
-          this.loginFailed = false;
-          this.errorMessage = ""; 
-
-          // Redirect to main page on success
-          this.$router.push('/');
         }
+
       } catch (error) {
         console.error("Error posting data:", error);
         this.loginFailed = true;
@@ -137,15 +149,13 @@ export default {
         this.showToast = true;
         setTimeout(() => { this.showToast = false; }, 3000);
       }
-    },
-    togglePasswordVisibility(field) {
-      this.isPasswordVisible = this.isPasswordVisible === false ? true : false;
     }
   }
 };
 </script>
 
 <style scoped>
+
 .toast {
   position: fixed;
   top: 20px;
@@ -160,10 +170,12 @@ export default {
   font-weight: bold;
 }
 
+/* Red border for invalid inputs */
 .input-error {
   border: 2px solid red;
 }
 
+/* Error message styling */
 .error-message {
   color: red;
   font-size: 12px;
@@ -179,7 +191,7 @@ export default {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-image: url('./pictures/book.jpeg');
+  background-image: url('./pictures/book.jpeg'); /* Obraz tła */
   background-size: cover;
   background-position: center;
   overflow: hidden;
@@ -191,13 +203,14 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(250, 250, 250, 0.15);
+  background-color: rgba(250, 250, 250, 0.15); /* Jaśniejszy kolor szary */
   z-index: 1;
 }
 
+/* Stylizacja formularza logowania */
 .form-container {
   position: relative;
-  z-index: 2;
+  z-index: 2; /* Ustawienie formularza nad tłem */
   background-color: rgba(255, 255, 255, 0.9);
   padding: 30px;
   border-radius: 10px;
@@ -238,24 +251,12 @@ input {
   color: #2f2f2f;
 }
 
-.password-container {
-  position: relative;
-}
-
-.eye-icon {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-}
-
 button {
   width: 100%;
   padding: 10px;
   border: none;
   border-radius: 5px;
-  background-color: #002f5b;
+  background-color: #002f5b; /* Original button color */
   color: white;
   font-size: 18px;
   font-family: 'Georgia', serif;
@@ -264,7 +265,7 @@ button {
 }
 
 button:hover {
-  background-color: #004080;
+  background-color: #004080; /* Darker navy blue on hover */
 }
 
 .signin-link {

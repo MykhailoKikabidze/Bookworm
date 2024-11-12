@@ -1,12 +1,12 @@
-
 <template>
   <div class="login-container">
     
-    <div v-if="showToast" class="toast"> <!--if there be wrong email or password it will show message about it-->
+    <div v-if="showToast" class="toast">
       {{ errorMessage }}
     </div>
 
-    <div class="overlay"></div> <!-- Warstwa półprzezroczysta nad obrazem tła -->
+    <div class="overlay"></div> <!-- Semi-transparent overlay -->
+    
     <div :class="['form-container', { 'login-failed': loginFailed }]">
       <h1>Create account</h1>
       <form @submit.prevent="postData">
@@ -21,23 +21,47 @@
           />
           <span v-if="!isEmailValid && email.length > 0" class="error-message">Please enter a valid email.</span>
         </div>
+        
         <div class="input-group">
           <label for="username">Username</label>
           <input type="text" id="username" v-model="username" required />
         </div>
+
         <div class="input-group">
           <label for="password">Password</label>
           <input
-            type="password"
+            :type="passwordVisible ? 'text' : 'password'"
             id="password"
             v-model="password"
             :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
             required
           />
           <span v-if="!isPasswordValid && password.length > 0" class="error-message">Password must be at least 8 characters.</span>
+          <span @click="togglePasswordVisibility" class="eye-icon">
+            <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+          </span>
         </div>
-        <button @click="postData" type="submit" :disabled="!isEmailValid || !isPasswordValid">Create</button>
+
+        <div class="input-group">
+          <label for="confirm-password">Confirm Password</label>
+          <input
+            :type="confirmPasswordVisible ? 'text' : 'password'"
+            id="confirm-password"
+            v-model="confirmPassword"
+            :class="{ 'input-error': confirmPassword && confirmPassword !== password }"
+            required
+          />
+          <span v-if="confirmPassword && confirmPassword !== password" class="error-message">Passwords do not match.</span>
+          <span @click="toggleConfirmPasswordVisibility" class="eye-icon">
+            <i :class="confirmPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+          </span>
+        </div>
+
+        <button @click="postData" type="submit" :disabled="!isEmailValid || !isPasswordValid || confirmPassword !== password">
+          Create
+        </button>
       </form>
+
       <p class="signin-link">
         Already have an account? <router-link to="/sign_in">Sign in</router-link>
       </p>
@@ -54,59 +78,36 @@ export default {
     return {
       username: '',
       password: '',
+      confirmPassword: '',
       email: '',
       responseData: null,
       link_backend: "https://4fd3-94-254-173-8.ngrok-free.app",
-      loginFailed: false, 
-      errorMessage: "", 
+      loginFailed: false,
+      errorMessage: "",
       token: "",
       sps: "",
-      showToast: false 
+      showToast: false,
+      passwordVisible: false,
+      confirmPasswordVisible: false,
     };
   },
   computed: {
-    // Validate email using validator.js
     isEmailValid() {
       return validator.isEmail(this.email);
     },
-    // Validate password with minimum length of 8
     isPasswordValid() {
       return validator.isLength(this.password, { min: 8 });
     }
   },
   methods: {
-    async getToken() {
-  const params = new URLSearchParams();
-  params.append("username", this.email);
-  params.append("password", this.password);
-
-  const response = await fetch(this.link_backend + "/token", {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      "ngrok-skip-browser-warning": "anyValue"
+    togglePasswordVisibility() {
+      this.passwordVisible = !this.passwordVisible;
     },
-    body: params
-  });
-
-  if (response.ok) {
-    const data = await response.json();
-    this.token = data.access_token;
-    localStorage.setItem('authToken', this.token);  // Store token in localStorage
-
-    // Redirect to home page on successful login
-    this.$router.push('/');  // or any other route you prefer after login
-  } else {
-    const data = await response.json();
-    this.token = data.detail;
-    this.errorMessage = "Failed to retrieve token. Please try again.";
-    this.showToast = true;
-    setTimeout(() => { this.showToast = false; }, 3000);
-  }
-},
+    toggleConfirmPasswordVisibility() {
+      this.confirmPasswordVisible = !this.confirmPasswordVisible;
+    },
     async postData() {
-      // Prevent sending if fields are invalid (shouldn't happen due to button disable)
-      if (!this.isEmailValid || !this.isPasswordValid) {
+      if (!this.isEmailValid || !this.isPasswordValid || this.confirmPassword !== this.password) {
         this.errorMessage = "Please correct your email or password.";
         this.showToast = true;
         setTimeout(() => { this.showToast = false; }, 3000);
@@ -131,15 +132,14 @@ export default {
         });
 
         if (response.ok) {
-          // If account creation succeeds, call getToken to retrieve the token
           await this.getToken();
         } else {
           const data = await response.json();
           this.responseData = data.detail;
           this.loginFailed = true;
-          this.errorMessage = "Invalid email or password. Please try again."; 
+          this.errorMessage = "Invalid email or password. Please try again.";
           this.showToast = true;
-          setTimeout(() => { this.showToast = false; }, 3000); 
+          setTimeout(() => { this.showToast = false; }, 3000);
         }
 
       } catch (error) {
@@ -149,13 +149,40 @@ export default {
         this.showToast = true;
         setTimeout(() => { this.showToast = false; }, 3000);
       }
+    },
+    async getToken() {
+      const params = new URLSearchParams();
+      params.append("username", this.email);
+      params.append("password", this.password);
+
+      const response = await fetch(this.link_backend + "/token", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          "ngrok-skip-browser-warning": "anyValue"
+        },
+        body: params
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.token = data.access_token;
+        localStorage.setItem('authToken', this.token);
+
+        this.$router.push('/');
+      } else {
+        const data = await response.json();
+        this.token = data.detail;
+        this.errorMessage = "Failed to retrieve token. Please try again.";
+        this.showToast = true;
+        setTimeout(() => { this.showToast = false; }, 3000);
+      }
     }
   }
 };
 </script>
 
 <style scoped>
-
 .toast {
   position: fixed;
   top: 20px;
@@ -170,12 +197,10 @@ export default {
   font-weight: bold;
 }
 
-/* Red border for invalid inputs */
 .input-error {
   border: 2px solid red;
 }
 
-/* Error message styling */
 .error-message {
   color: red;
   font-size: 12px;
@@ -191,7 +216,7 @@ export default {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-image: url('./pictures/book.jpeg'); /* Obraz tła */
+  background-image: url('./pictures/book.jpeg');
   background-size: cover;
   background-position: center;
   overflow: hidden;
@@ -203,14 +228,13 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(250, 250, 250, 0.15); /* Jaśniejszy kolor szary */
+  background-color: rgba(250, 250, 250, 0.15);
   z-index: 1;
 }
 
-/* Stylizacja formularza logowania */
 .form-container {
   position: relative;
-  z-index: 2; /* Ustawienie formularza nad tłem */
+  z-index: 2;
   background-color: rgba(255, 255, 255, 0.9);
   padding: 30px;
   border-radius: 10px;
@@ -256,7 +280,7 @@ button {
   padding: 10px;
   border: none;
   border-radius: 5px;
-  background-color: #002f5b; /* Original button color */
+  background-color: #002f5b;
   color: white;
   font-size: 18px;
   font-family: 'Georgia', serif;
@@ -265,21 +289,29 @@ button {
 }
 
 button:hover {
-  background-color: #004080; /* Darker navy blue on hover */
+  background-color: #004080;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 14px;
+  top: 33px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #002f5b;
+}
+
+.eye-icon i {
+  font-size: 20px;
 }
 
 .signin-link {
-  margin-top: 15px;
-  font-size: 14px;
+  margin-top: 20px;
+  font-size: 15px; 
 }
 
 .signin-link a {
   color: #002f5b;
-  text-decoration: none;
   font-weight: bold;
-}
-
-.signin-link a:hover {
-  color:#004080;
 }
 </style>

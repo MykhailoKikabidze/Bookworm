@@ -1,4 +1,5 @@
 <template>
+  <br>
   <div class="title">
     Genres
   </div>
@@ -101,6 +102,7 @@
       </router-link>
     </div>
   </div>
+  <br>
   <div class="title">
     POPULAR CLASSICS
   </div>
@@ -142,13 +144,24 @@
 .classical-image-container {
   padding: 20px;
   text-align: center;
+  overflow-x: auto; /* Włącz przewijanie w poziomie */
+  white-space: nowrap; /* Zapobiega łamaniu linii w poziomie */
 }
 
 .classical-image-row {
-  display: flex;
-  justify-content: center; /* Center images horizontally */
+  display: inline-flex; /* Zamiast flex, używamy inline-flex, by umożliwić przewijanie poziome */
+  justify-content: flex-start; /* Wyrównanie obrazków po lewej stronie */
   gap: 15px;
-  flex-wrap: wrap; /* Allow wrapping for smaller screens */
+}
+
+.classical-image-wrapper {
+  position: relative;
+  width: 250px;  /* Można dostosować szerokość obrazków */
+  height: 350px; /* Można dostosować wysokość obrazków */
+  overflow: hidden;
+  border-radius: 15px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  flex-shrink: 0; /* Zapobiega skurczeniu się obrazków */
 }
 
 .image-container {
@@ -165,10 +178,11 @@
   justify-items: center; /* Center images within grid cells */
 }
 
-.classical-image-wrapper {
-  width: 250px;  /* Larger size for classical images */
-  height: 350px; /* Larger height for classical images */
-  flex: 0 0 auto;
+
+
+.classical-image-wrapper:hover {
+  transform: scale(1.1); /* Slightly enlarge the image */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Add shadow on hover */
 }
 
 .image-wrapper {
@@ -182,20 +196,26 @@
 
 .title {
   text-align: center;
-  font-size: 50px; /* Lekko większa czcionka dla lepszej widoczności */
-  font-family: 'Lora', serif; /* Elegancka czcionka szeryfowa */
-  font-weight: 700; /* Gruby font dla większej widoczności */
-  color: #303031b9; /* Ciepły złoty kolor */
+  font-size: 50px; /* Font size for better visibility */
+  font-family: 'Lora', serif; /* Elegant serif font */
+  font-weight: 700; /* Bold font for stronger visibility */
+  color: #fff; /* White text color */
   
-  margin-top: 15px; /* Mniejszy margines górny */
-  margin-bottom: 15px; /* Mniejszy margines dolny */
-  letter-spacing: 3px; /* Szersze odstępy między literami */
-  text-transform: uppercase; /* Duże litery dla mocniejszego efektu */
- 
+  margin-top: 30px; /* Increased top margin for better spacing */
+  margin-bottom: 30px; /* Increased bottom margin for better spacing */
+  letter-spacing: 4px; /* Slightly wider letter spacing for elegance */
+  text-transform: uppercase; /* Uppercase letters for stronger effect */
+  
+  position: relative;
+  width: 100%; /* Full width of the screen */
+  height: 50px; /* Height of the line */
+  padding: 0; /* Remove additional padding */
+  background-color: #8d6e631c; /* Set opacity to 0.5 */
+  color: #8d6e63; /* White text color */
+  border-radius: 0; /* No border radius for a straighter appearance */
+  margin: 0 auto; /* Center the element horizontally */
+  box-shadow: none; /* No shadow for a cleaner line */
 }
-
-
-
 
 
 .classical-image {

@@ -124,6 +124,8 @@ export default {
   box-sizing: border-box;
 }
 
+
+
 html, body {
   width: 100%;
   height: 100%;
@@ -359,6 +361,7 @@ section.banner {
 
 .search-bar input {
   width: 300px;
+  height: 40px;
   padding: 10px;
   border: 2px solid #ccc;
   border-radius: 20px;
@@ -377,6 +380,84 @@ section.banner {
 .search-bar button:hover {
   background-color: #335f8d;
 }
+/* Font size scaling for the entire page */
+html {
+  font-size: 100%;
+}
 
+@media (max-width: 1200px) {
+  html {
+    font-size: 90%;
+  }
+}
+
+@media (max-width: 992px) {
+  html {
+    font-size: 80%;
+  }
+}
+
+@media (max-width: 768px) {
+  html {
+    font-size: 70%;
+  }
+}
+
+@media (max-width: 576px) {
+  html {
+    font-size: 60%;
+  }
+}
+
+/* Navbar Styling */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px; /* Reduce padding for smaller screens */
+}
+
+.navbar nav {
+  display: flex;
+  gap: 0px; /* Reduce spacing between items */
+}
+
+.navbar nav a,
+.navbar .settings-button {
+  transition: font-size 0.3s ease, border-radius 0.3s ease; /* Add transition for border-radius */
+}
+
+/* Hover effect on navbar items */
+.navbar nav a:hover,
+.navbar .settings-button:hover {
+  border-radius: 15px; /* Increased border-radius for a more rounded effect */
+}
+
+@media (max-width: 992px) {
+  .navbar nav a:hover,
+  .navbar .settings-button:hover {
+    border-radius: 13px; /* Slightly smaller radius on medium screens */
+  }
+}
+
+
+@media (max-width: 768px) {
+  .navbar nav a,
+  .navbar .settings-button {
+    font-size: 1.2em; /* Further reduce font size on smaller screens */
+    padding: 7px 3px;
+    border-radius: 5px; /* Add border-radius to create rounded corners */
+  }
+}
+
+
+@media (max-width: 576px) {
+  .navbar nav a,
+  .navbar .settings-button {
+    font-size: 1.1em; /* Minimize font size for very small screens */
+    padding: 6px 6px;
+    border-radius: 2px;
+  }
+}
 
 </style>

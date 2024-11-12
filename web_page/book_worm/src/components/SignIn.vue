@@ -11,7 +11,17 @@
         </div>
         <div class="input-group">
           <label for="password">Password</label>
-          <input type="password" id="password" v-model="password" required />
+          <div class="password-wrapper">
+            <input
+              :type="passwordVisible ? 'text' : 'password'"
+              id="password"
+              v-model="password"
+              required
+            />
+            <span class="eye-icon" @click="togglePasswordVisibility">
+              <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </span>
+          </div>
         </div>
         <button type="submit">Sign in</button>
       </form>
@@ -29,6 +39,7 @@ export default {
     return {
       username: '',
       password: '',
+      passwordVisible: false, // Add password visibility toggle state
       link_backend: "https://4fd3-94-254-173-8.ngrok-free.app",
       moder: false,
       responseData: "",
@@ -90,11 +101,13 @@ export default {
       } catch (error) {
         console.error("Error during authorization:", error);
       }
+    },
+    togglePasswordVisibility() {
+      this.passwordVisible = !this.passwordVisible; // Toggle password visibility
     }
   }
 };
 </script>
-
 
 <style scoped>
 .login-container {
@@ -103,7 +116,7 @@ export default {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-image: url('./pictures/book_log_in.jpg'); /* Obraz tła */
+  background-image: url('./pictures/book_log_in.jpg'); /* Background image */
   background-size: cover;
   background-position: center;
   overflow: hidden;
@@ -129,13 +142,13 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(250, 250, 250, 0.15); /* Jaśniejszy kolor szary */
+  background-color: rgba(250, 250, 250, 0.15); /* Lighter gray color */
   z-index: 1;
 }
 
 .form-container {
   position: relative;
-  z-index: 2; /* Ustawienie formularza nad tłem */
+  z-index: 2; /* Set form above background */
   background-color: rgba(255, 255, 255, 0.9);
   padding: 30px;
   border-radius: 10px;
@@ -173,6 +186,19 @@ input {
   font-family: 'Georgia', serif;
   background-color: #f5f5f5;
   color: #2f2f2f;
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 14px;
+  top: 7px;
+  cursor: pointer;
+  font-size: 20px;
+  color: #002f5b;
 }
 
 button {

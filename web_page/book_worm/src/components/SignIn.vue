@@ -40,7 +40,7 @@ export default {
       username: '',
       password: '',
       passwordVisible: false, // Add password visibility toggle state
-      link_backend: "https://4fd3-94-254-173-8.ngrok-free.app",
+      link_backend: "https://45ac-212-191-80-214.ngrok-free.app",
       moder: false,
       responseData: "",
     };

@@ -81,7 +81,7 @@ export default {
       confirmPassword: '',
       email: '',
       responseData: null,
-      link_backend: "https://4fd3-94-254-173-8.ngrok-free.app",
+      link_backend: "https://45ac-212-191-80-214.ngrok-free.app",
       loginFailed: false,
       errorMessage: "",
       token: "",
@@ -168,7 +168,6 @@ export default {
         const data = await response.json();
         this.token = data.access_token;
         localStorage.setItem('authToken', this.token);
-
         this.$router.push('/');
       } else {
         const data = await response.json();

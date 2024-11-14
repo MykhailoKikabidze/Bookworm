@@ -1,4 +1,5 @@
 <template>
+  <div >{{ check() }}</div>
   <div id="app">
     <header class="navbar">
       <router-link to="/" class="logo">BOOK WORM</router-link>
@@ -30,8 +31,8 @@
                 <input type="text" id="username" v-model="username" required />
               </div>
               <div class="form-group">
-                <label for="email">New Email</label>
-                <input type="email" id="email" v-model="email" required />
+                <label for="password">New Password</label>
+                <input type="password" id="password" v-model="password" required />
               </div>
               <button type="submit">Save Changes</button>
             </form>
@@ -101,16 +102,18 @@ export default {
       alert(`Changes saved!\nUsername: ${this.username}\nEmail: ${this.email}`);
       // Add logic to save settings (e.g., update user profile)
     }
-  },
-  mounted() {
-    // Check if there's a valid token in localStorage when the app is mounted
-    const token = localStorage.getItem("authToken");
+    ,check()
+    {
+      const token = localStorage.getItem("authToken");
     if (token) {
       this.isLoggedIn = true; // Set the user as logged in if a token is present
     } else {
       this.isLoggedIn = false; // Ensure logged-out state if no token
     }
     this.typeText();
+    }
+  },
+  mounted() {
   }
 };
 </script>

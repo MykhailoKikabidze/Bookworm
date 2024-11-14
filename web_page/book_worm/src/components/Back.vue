@@ -6,7 +6,7 @@
 
     <!-- Buttons to call fetchData and getToken functions -->
     <button @click="getToken">Fetch Data</button>
-    <button @click="changePassword">change anem</button>
+    <button @click="deleteAccount">change anem</button>
 
     <!-- Display token and any response data -->
     <h1>{{ token }}</h1>
@@ -23,7 +23,7 @@ export default {
       moder: false,
       username: "", // Add field for username
       password: "", // Add field for password
-      link_backend: "https://8958-94-254-173-8.ngrok-free.app", // replace with your actual backend URL
+      link_backend: "https://45ac-212-191-80-214.ngrok-free.app", // replace with your actual backend URL
     };
   },
   methods: {
@@ -101,6 +101,31 @@ async changeName() {
   }
 }
 ,
+async deleteAccount() {
+  try {
+    const response = await fetch(this.link_backend + "/users", {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        "Authorization": "Bearer " + localStorage.getItem('authToken'),
+        "ngrok-skip-browser-warning": "anyValue"
+      }
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      this.responseData = data;
+
+    } else {
+      const data = await response.json();
+      this.responseData = data;
+      localStorage.removeItem("authToken");
+      window.location.reload();
+    }
+  } catch (error) {
+    console.error("Error posting data:", error);
+  }
+},
 
     async changePassword() {
       try {

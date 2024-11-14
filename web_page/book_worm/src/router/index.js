@@ -14,7 +14,7 @@ import SignIn from '../components/SignIn.vue';
 
 const routes = [
  
-  { path: '/', name: 'Home', component: FirstPage }, // Route for First Page
+  { path: '/', name: 'Home', component: FirstPage },
   { path: '/another-page', name: 'TheWelcome', component: TheWelcome }, // Route for Welcome Page
   { path: '/library', name: 'Library', component: LibraryPage }, // New route for Library page
   { path: '/favorites', name: 'Favorites', component: Favorites }, // New route for Favorites page

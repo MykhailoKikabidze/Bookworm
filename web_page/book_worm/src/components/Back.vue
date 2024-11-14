@@ -23,7 +23,7 @@ export default {
       moder: false,
       username: "", // Add field for username
       password: "", // Add field for password
-      link_backend: "https://45ac-212-191-80-214.ngrok-free.app", // replace with your actual backend URL
+      link_backend: "https://abe4-188-146-152-16.ngrok-free.app", // replace with your actual backend URL
     };
   },
   methods: {

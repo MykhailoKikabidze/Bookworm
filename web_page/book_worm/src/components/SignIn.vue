@@ -29,20 +29,26 @@
         Don't have an account? <router-link to="/login">Create account</router-link>
       </p>
     </div>
+    <div v-if="showToast" :class="['toast', toastType]">
+      {{ toastMessage }}
+    </div>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'SignUp',
+  name: 'SignIp',
   data() {
     return {
       username: '',
       password: '',
       passwordVisible: false, // Add password visibility toggle state
-      link_backend: "https://45ac-212-191-80-214.ngrok-free.app",
+      link_backend: "https://abe4-188-146-152-16.ngrok-free.app",
       moder: false,
       responseData: "",
+      showToast: false,  
+      toastMessage: '', 
+      toastType: 'success' 
     };
   },
   methods: {
@@ -67,15 +73,18 @@ export default {
         if (!response.ok) {
           const data = await response.json();
           this.responseData = data.detail;
+          this.showToastMessage('Error logging in: ' + this.responseData, 'error');
+
         } else {
           const data = await response.json();
           localStorage.setItem('authToken', data.access_token);
 
-          // Step 2: Call authorization after storing token
           await this.authorization();
         }
       } catch (error) {
         console.error("Error fetching token:", error);
+        this.showToastMessage('Network error. Please try again.', 'error');
+
       }
     },
     async authorization() {
@@ -92,24 +101,67 @@ export default {
         if (!response.ok) {
           const data = await response.json();
           this.responseData = data.detail;
+          this.showToastMessage('Error authorizing user: ' + this.responseData, 'error');
+
         } else {
           const data = await response.json();
           this.moder = data.is_moder;
+          this.showToastMessage('Successfully logged in!', 'success');
 
-          this.$router.push('/'); // Adjust to the actual route of your main page if different
+          this.$router.push('/'); 
         }
       } catch (error) {
         console.error("Error during authorization:", error);
+        this.showToastMessage('Network error. Please try again.', 'error');
+
       }
     },
     togglePasswordVisibility() {
-      this.passwordVisible = !this.passwordVisible; // Toggle password visibility
-    }
+      this.passwordVisible = !this.passwordVisible; 
+    },
+    showToastMessage(message, type) {
+    this.toastMessage = message;
+    this.toastType = type;
+    this.showToast = true;
+
+    setTimeout(() => {
+      this.showToast = false;
+    }, 3000);
+  }
   }
 };
 </script>
 
 <style scoped>
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0s 0.5s;
+  z-index: 9999;
+}
+
+.toast.show {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s ease, visibility 0s 0s;
+}
+
+.toast.success {
+  background-color: #4caf50; /* Green for success */
+}
+
+.toast.error {
+  background-color: #f44336; /* Red for error */
+}
 .login-container {
   position: relative;
   display: flex;

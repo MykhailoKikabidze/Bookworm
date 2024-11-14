@@ -1,12 +1,12 @@
 <template>
   <div class="login-container">
-    
-    <div v-if="showToast" class="toast">
+
+    <div v-if="showToast" :class="['toast', { 'user-exists': errorMessage.includes('already has an account') }]">
       {{ errorMessage }}
     </div>
 
     <div class="overlay"></div> <!-- Semi-transparent overlay -->
-    
+
     <div :class="['form-container', { 'login-failed': loginFailed }]">
       <h1>Create account</h1>
       <form @submit.prevent="postData">
@@ -57,7 +57,7 @@
           </span>
         </div>
 
-        <button @click="postData" type="submit" :disabled="!isEmailValid || !isPasswordValid || confirmPassword !== password">
+        <button type="submit" :disabled="!isEmailValid || !isPasswordValid || confirmPassword !== password">
           Create
         </button>
       </form>
@@ -70,7 +70,6 @@
 </template>
 
 <script>
-// Import validator.js
 import validator from 'validator';
 
 export default {
@@ -81,11 +80,10 @@ export default {
       confirmPassword: '',
       email: '',
       responseData: null,
-      link_backend: "https://45ac-212-191-80-214.ngrok-free.app",
+      link_backend: "https://abe4-188-146-152-16.ngrok-free.app",
       loginFailed: false,
       errorMessage: "",
       token: "",
-      sps: "",
       showToast: false,
       passwordVisible: false,
       confirmPasswordVisible: false,
@@ -105,6 +103,28 @@ export default {
     },
     toggleConfirmPasswordVisibility() {
       this.confirmPasswordVisible = !this.confirmPasswordVisible;
+    },
+    async getToken() {
+      const params = new URLSearchParams();
+      params.append("username", this.email);
+      params.append("password", this.password);
+      const response = await fetch(this.link_backend + "/token", {
+       method: 'POST',
+       headers: {
+       'Content-Type': 'application/x-www-form-urlencoded',
+         "ngrok-skip-browser-warning": "anyValue"
+       },
+       body: params
+      });
+        if (!response.ok) {
+          const data = await response.json();
+          this.token = data.detail;
+        } else {
+          const data = await response.json();
+          this.token = data.access_token;
+          localStorage.setItem('authToken',this.token);
+          this.$router.push('/'); 
+        }
     },
     async postData() {
       if (!this.isEmailValid || !this.isPasswordValid || this.confirmPassword !== this.password) {
@@ -135,44 +155,18 @@ export default {
           await this.getToken();
         } else {
           const data = await response.json();
-          this.responseData = data.detail;
-          this.loginFailed = true;
-          this.errorMessage = "Invalid email or password. Please try again.";
+          if (data.detail && data.detail.includes("already exists")) {
+            this.errorMessage = "User already has an account. Please sign in instead.";
+          } else {
+            this.errorMessage = "Invalid email or password. Please try again.";
+          }
           this.showToast = true;
           setTimeout(() => { this.showToast = false; }, 3000);
         }
 
       } catch (error) {
         console.error("Error posting data:", error);
-        this.loginFailed = true;
-        this.errorMessage = "Error connecting to server. Please try again later.";
-        this.showToast = true;
-        setTimeout(() => { this.showToast = false; }, 3000);
-      }
-    },
-    async getToken() {
-      const params = new URLSearchParams();
-      params.append("username", this.email);
-      params.append("password", this.password);
-
-      const response = await fetch(this.link_backend + "/token", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          "ngrok-skip-browser-warning": "anyValue"
-        },
-        body: params
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.token = data.access_token;
-        localStorage.setItem('authToken', this.token);
-        this.$router.push('/');
-      } else {
-        const data = await response.json();
-        this.token = data.detail;
-        this.errorMessage = "Failed to retrieve token. Please try again.";
+        this.errorMessage = "Error connecting to server. Please try again later."+{error};
         this.showToast = true;
         setTimeout(() => { this.showToast = false; }, 3000);
       }
@@ -180,6 +174,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 .toast {
@@ -194,6 +189,9 @@ export default {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   z-index: 20;
   font-weight: bold;
+}
+.user-exists {
+  background-color: rgba(255, 140, 0, 0.9); /* Orange color for existing user */
 }
 
 .input-error {

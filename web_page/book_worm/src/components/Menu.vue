@@ -1,7 +1,9 @@
 <template>
   <div >{{ check() }}</div>
   <div id="app">
-    <header class="navbar">
+    <div class="toast" :class="['toast', notificationClass, { show: showNotification }]">
+    {{ message }}
+  </div>    <header class="navbar">
       <router-link to="/" class="logo">BOOK WORM</router-link>
       <nav>
         <router-link to="/library"><i class="fas fa-book"></i> Library</router-link>
@@ -21,24 +23,35 @@
 
         <!-- Settings dropdown visible only if logged in -->
         <div class="settings-dropdown" v-if="isLoggedIn">
-          <a href="#" class="settings-button">
-            <i class="fas fa-cogs"></i> Settings
-          </a>
-          <div class="settings-menu">
-            <form @submit.prevent="updateSettings">
-              <div class="form-group">
-                <label for="username">New Username</label>
-                <input type="text" id="username" v-model="username" required />
-              </div>
-              <div class="form-group">
-                <label for="password">New Password</label>
-                <input type="password" id="password" v-model="password" required />
-              </div>
-              <button type="submit">Save Changes</button>
-            </form>
+      <a href="#" class="settings-button">
+        <i class="fas fa-cogs"></i> Settings
+      </a>
+      <div class="settings-menu">
+        <form @submit.prevent="updateSettings">
+          <div class="form-group">
+            <label for="username">New Username</label>
+            <input type="text" id="username" v-model="newUsername" required />
+            <button type="button" @click="changeName()">Save Username</button>
+          </div>
+          <div class="form-group">
+  <label for="password">New Password</label>
+  <div class="password-wrapper">
+    <input
+      :type="passwordVisible ? 'text' : 'password'"
+      id="password"
+      v-model="newPassword"
+      required
+    />
+    <span class="eye-icon" @click="togglePasswordVisibility">
+      <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+    </span>
+  </div>
+  <button type="button" @click="changePassword()">Save Password</button>
+</div>
+          <button type="button" class="delete-account-button" @click="deleteAccount()">Delete Account</button>
+        </form>
           </div>
         </div>
-
         <!-- Log In / Log Out Button -->
         <router-link :to="isLoggedIn ? '/' : '/sign_in'" @click="toggleLogin">
           <i class="fas fa-sign-in-alt"></i> {{ isLoggedIn ? 'Log Out' : 'Log In' }}
@@ -67,13 +80,119 @@ export default {
       displayedText: '',
       typingIndex: 0,
       typingSpeed: 100,
+      link_backend: "https://abe4-188-146-152-16.ngrok-free.app",
       searchQuery: '',
       isLoggedIn: false, // User login status
       username: '',
-      email: ''
+      message: '',
+      showNotification: false,  // New property to show/hide notification
+      notificationClass: '',  
+      password: '',
+      passwordVisible: false 
     };
   },
+  computed: {
+    messageClass() {
+      return this.message.includes('successfully') ? 'success-message' : 'error-message';
+    },
+  },
   methods: {
+    togglePasswordVisibility() {
+      this.passwordVisible = !this.passwordVisible;
+    },
+    async changeName() {
+      try {
+        const params = new URLSearchParams();
+        params.append("new_username", this.newUsername);
+
+        const url = `${this.link_backend}/users/name?${params.toString()}`;
+
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            "Authorization": "Bearer " + localStorage.getItem('authToken'),
+            "ngrok-skip-browser-warning": "anyValue"
+          }
+        });
+
+        if (response.ok) {
+          this.message = 'Username successfully changed!';
+          this.notificationClass = 'success-toast';  // Class for success
+        } else {
+          const data = await response.json();
+          this.message = data.detail || 'Error changing username.';
+          this.notificationClass = 'error-toast';  // Class for error
+        }
+      } catch (error) {
+        this.message = 'Error changing username.';
+        this.notificationClass = 'error-toast';  // Class for error
+      }
+      this.showNotificationMessage();
+    },
+    async changePassword() {
+      try {
+        const params = new URLSearchParams();
+        params.append("new_password", this.newPassword);
+
+        const url = `${this.link_backend}/users/password?${params.toString()}`;
+
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            "Authorization": "Bearer " + localStorage.getItem('authToken'),
+            "ngrok-skip-browser-warning": "anyValue"
+          },
+        });
+
+      if (response.ok) {
+          this.message = 'Password successfully changed!';
+          this.notificationClass = 'success-toast';  // Class for success
+          this.newPassword = '';  
+        } else {
+          const data = await response.json();
+          this.message = data.detail || 'Error changing password.';
+          this.notificationClass = 'error-toast';  // Class for error
+        }
+      } catch (error) {
+        this.message = 'Error changing password.';
+        this.notificationClass = 'error-toast';  // Class for error
+      }
+      this.showNotificationMessage();
+    },
+
+    async deleteAccount() {
+      const confirmation = confirm("Are you sure you want to delete your account? This action is irreversible.");
+      if (!confirmation) return;
+      try {
+        const response = await fetch(this.link_backend + "/users", {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            "Authorization": "Bearer " + localStorage.getItem('authToken'),
+            "ngrok-skip-browser-warning": "anyValue"
+          }
+        });
+
+        if (response.ok) {
+          localStorage.removeItem("authToken");
+          window.location.reload();
+          this.message = 'Account deleted successfully.';
+          this.notificationClass = 'success-toast';  // Class for success
+        } else {
+          const data = await response.json();
+          this.message = data.detail || 'Error deleting account.';
+          this.notificationClass = 'error-toast';  // Class for error
+        }
+      } catch (error) {
+        console.error("Error posting data:", error);
+        this.message = 'Error deleting account.';
+        this.notificationClass = 'error-toast';  // Class for error
+
+      }
+      this.showNotificationMessage();
+    },
     typeText() {
       if (this.typingIndex < this.fullText.length) {
         this.displayedText += this.fullText.charAt(this.typingIndex);
@@ -99,7 +218,7 @@ export default {
       }
     },
     updateSettings() {
-      alert(`Changes saved!\nUsername: ${this.username}\nEmail: ${this.email}`);
+      alert(`Changes saved!\nUsername: ${this.username}\nPassword: ${this.password}`);
       // Add logic to save settings (e.g., update user profile)
     }
     ,check()
@@ -111,8 +230,16 @@ export default {
       this.isLoggedIn = false; // Ensure logged-out state if no token
     }
     this.typeText();
-    }
+    },
+
+    showNotificationMessage() {
+    this.showNotification = true; // Show the toast
+    setTimeout(() => {
+      this.showNotification = false; // Hide the toast after 3 seconds
+      this.message = ''; // Clear the message
+    }, 3000); // Adjust the duration (in milliseconds) as desired
   },
+},
   mounted() {
   }
 };
@@ -126,8 +253,49 @@ export default {
   padding: 0;
   box-sizing: border-box;
 }
+.password-wrapper {
+  position: relative;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 14px;
+  top: 7px;
+  cursor: pointer;
+  font-size: 20px;
+  color: #002f5b;
+}
 
 
+.toast {
+  position: fixed;
+  bottom: 20px; /* distance from the bottom of the viewport */
+  left: 50%; /* centers the toast horizontally */
+  transform: translateX(-50%); /* adjust it so that it's centered */
+  background-color: #333; /* dark background */
+  color: white;
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  opacity: 0; /* Initially invisible */
+  visibility: hidden; /* Hidden by default */
+  transition: opacity 0.5s ease, visibility 0s 0.5s; /* Smooth fade-out */
+  z-index: 9999; /* Make sure the toast is on top */
+}
+
+.toast.show {
+  opacity: 1; /* Make the toast visible */
+  visibility: visible; /* Ensure it's visible */
+  transition: opacity 0.5s ease, visibility 0s 0s; /* Smooth fade-in */
+}
+
+.success-toast {
+  background-color: #4caf50; /* Green for success */
+}
+
+.error-toast {
+  background-color: #f44336; /* Red for errors */
+}
 
 html, body {
   width: 100%;

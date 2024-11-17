@@ -2,7 +2,7 @@
   <div>{{ check() }}</div>
   <div id="app">
     <header class="navbar">
-      <router-link to="/" class="logo">BOOK WORM</router-link>
+      <router-link to="/" class="logo">BOOK WORM </router-link>
       <nav>
         <router-link to="/library"><i class="fas fa-book"></i> Library</router-link>
         <div class="dropdown">
@@ -21,60 +21,10 @@
 
         <!-- Settings dropdown visible only if logged in -->
         <div class="settings-dropdown" v-if="isLoggedIn">
-          <a href="#" class="settings-button">
-            <i class="fas fa-cogs"></i> Settings
-          </a>
-          <div class="settings-menu">
-            <form @submit.prevent="updateSettings">
-              <div class="form-group">
-                <label for="username">New Username</label>
-                <input type="text" id="username" v-model="newUsername" required />
-                <button type="button" @click="changeName()">Save Username</button>
-              </div>
-              <div class="form-group">
-                <label for="password">New Password</label>
-                <div class="password-wrapper">
-                  <input
-                    :type="passwordVisible ? 'text' : 'password'"
-                    id="password"
-                    v-model="password"
-                    :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
-                    required
-                  />
-                  <span v-if="!isPasswordValid && password.length > 0" class="error-message">
-                    Password must be at least 8 characters.
-                  </span>
-                  <span @click="togglePasswordVisibility" class="eye-icon">
-                    <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-                  </span>
-                </div>
-              </div>
-              <br>
-              <div class="form-group">
-                <label for="confirm-password">Confirm Password</label>
-                <div class="password-wrapper">
-                  <input
-                    :type="passwordVisible ? 'text' : 'password'"
-                    id="confirm-password"
-                    v-model="confirmPassword"
-                    :class="{ 'input-error': confirmPassword && confirmPassword !== password }"
-                    required
-                  />
-                  <span v-if="confirmPassword && confirmPassword !== password" class="error-message">
-                    Passwords do not match.
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                @click="changePassword()"
-                :disabled="!isPasswordValid || confirmPassword !== password"
-              >
-                Save Password
-              </button>
-            </form>
-            <button type="button" class="delete-account-button" @click="deleteAccount()">Delete Account</button>
-          </div>
+          <a href="/settings" class="settings-button" target="" rel="noopener noreferrer">
+  <i class="fas fa-cogs"></i> Settings
+</a>
+          
         </div>
 
         <!-- Log In / Log Out Button -->
@@ -117,6 +67,10 @@ export default {
       passwordVisible: false,
       newUsername: '',
     };
+  },
+  created() {
+    // Assuming you store the username during the login process
+    this.username = localStorage.getItem('username'); // or however you store it after login
   },
   components: {
     Toast,
@@ -302,7 +256,6 @@ export default {
   color: #002f5b;
 }
 
-
 html, body {
   width: 100%;
   height: 100%;
@@ -348,7 +301,7 @@ section.banner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* Ensure navbar items do not wrap */
   padding: 15px 40px;
 }
 
@@ -361,13 +314,11 @@ section.banner {
 
 .navbar nav {
   display: flex;
-  position: relative;
-  /* flex-direction: column; */
+  gap: 15px; /* Space between navbar items */
 }
 
 .navbar nav a {
   position: relative;
-  margin-left: 30px;
   text-decoration: none;
   font-size: 18px;
   color: #002f5b;
@@ -398,6 +349,10 @@ section.banner {
 .dropdown-toggle i {
   margin-right: 8px;
   font-size: 20px;
+}
+
+.settings-dropdown {
+  margin-top: 10px; /* Adds space above the button */
 }
 
 .dropdown:hover .dropdown-menu {
@@ -464,70 +419,6 @@ section.banner {
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* Settings Dropdown Styles */
-.settings-dropdown {
-  position: relative;
-}
-
-.settings-button {
-  display: flex;
-  align-items: center;
-  padding: 10px 15px;
-  cursor: pointer;
-  border-radius: 20px;
-}
-
-.settings-button i {
-  margin-right: 8px;
-}
-
-.settings-menu {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: white;
-  border: 1px solid #002f5b;
-  border-radius: 8px;
-  z-index: 10;
-  width: 250px;
-  padding: 8px 12px; /* Reduced padding */
-  font-family: 'Playfair Display', serif; /* Matching font with your site */
-  font-size: 16px; /* Adjust the font size to match your site */
-}
-
-.settings-dropdown:hover .settings-menu {
-  display: block;
-}
-
-.settings-menu .form-group {
-  margin-bottom: 10px;
-}
-
-.settings-menu input {
-  width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
-
-.settings-menu button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  background-color: #002f5b;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.settings-menu button:hover {
-  background-color: #335f8d;
-}
-
 .search-bar {
   display: flex;
   justify-content: center;
@@ -555,6 +446,7 @@ section.banner {
 .search-bar button:hover {
   background-color: #335f8d;
 }
+
 /* Font size scaling for the entire page */
 html {
   font-size: 100%;
@@ -594,7 +486,8 @@ html {
 
 .navbar nav {
   display: flex;
-  gap: 0px; /* Reduce spacing between items */
+  gap: 10px; /* Slightly reduce spacing between items */
+  justify-content: center; /* Center navbar items */
 }
 
 .navbar nav a,
@@ -615,7 +508,6 @@ html {
   }
 }
 
-
 @media (max-width: 768px) {
   .navbar nav a,
   .navbar .settings-button {
@@ -625,14 +517,17 @@ html {
   }
 }
 
-
 @media (max-width: 576px) {
   .navbar nav a,
   .navbar .settings-button {
     font-size: 1.1em; /* Minimize font size for very small screens */
-    padding: 6px 6px;
-    border-radius: 2px;
+    padding: 5px 10px; /* Adjust padding for small screens */
+    border-radius: 10px; /* Ensure border-radius is consistent */
+    outline: none; /* Remove focus outline */
+    border: none; /* Remove border if any */
   }
+
+  
 }
 
 </style>

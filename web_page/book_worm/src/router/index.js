@@ -11,6 +11,7 @@ import Topics from '../components/Topics.vue'; // Import Topics component
 import Contact from '../components/Contact.vue'; // Import Contact component
 import Login from '../components/Login.vue'; // Import Login component
 import SignIn from '../components/SignIn.vue';
+import SettingsPage from '../components/SettingsPage.vue'; // Import widoku
 
 const routes = [
  
@@ -25,7 +26,9 @@ const routes = [
   { path: '/contact', name: 'Contact', component: Contact }, // New route for Contact page
   { path: '/sign_in', name: 'SignIN', component: SignIn }, // New route for Sign In page
   { path: '/login', name: 'Login', component: Login },
-  
+  {
+    path: '/settings', name: 'Settings', component: SettingsPage, // Nazwa komponentu dla strony ustawień
+  },
    // New route for Login page
 ];
 

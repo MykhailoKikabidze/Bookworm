@@ -1,6 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+
+import auth.schemas
 from db import AsyncSessionLocal
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
@@ -127,13 +129,12 @@ async def create_user(
 ):
     result = await authorize_user(db, user)
 
-    if str(result.__class__) == "<class 'service.auth.schemas.UserError'>":
+    if isinstance(result, auth.schemas.UserError):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=result.message,
         )
-    else:
-        return {"status": 200}
+    return {"status": 200}
 
 
 @app.put("/users/name", tags=["settings"], response_model=typing.Dict)

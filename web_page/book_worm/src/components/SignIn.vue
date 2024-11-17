@@ -6,9 +6,14 @@
       <h1>Sign in</h1>
       <form @submit.prevent="handleSubmit">
         <div class="input-group">
-          <label for="username">Email</label>
-          <input type="text" id="username" v-model="username" required />
+          <label for="email">Email</label>
+          <div class="password-wrapper">
+          <input type="text" id="email" v-model="email" 
+          :class="{ 'input-error': !isEmailValid && email.length > 0 }"
+          required />
+          <span v-if="!isEmailValid && email.length > 0" class="error-message">Please enter a valid email.</span>
         </div>
+      </div>
         <div class="input-group">
           <label for="password">Password</label>
           <div class="password-wrapper">
@@ -16,14 +21,16 @@
               :type="passwordVisible ? 'text' : 'password'"
               id="password"
               v-model="password"
+              :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
               required
             />
+            <span v-if="!isPasswordValid && password.length > 0" class="error-message">Password must be at least 8 characters.</span>
             <span class="eye-icon" @click="togglePasswordVisibility">
               <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
             </span>
           </div>
         </div>
-        <button type="submit">Sign in</button>
+        <button type="submit" :disabled="!isEmailValid || !isPasswordValid">Sign in</button>
       </form>
       <p class="login-link">
         Don't have an account? <router-link to="/login">Create account</router-link>
@@ -32,36 +39,65 @@
     <div v-if="showToast" :class="['toast', toastType]">
       {{ toastMessage }}
     </div>
+
+    <Toast ref="toastRef" />
+
   </div>
 </template>
 
 <script>
+import validator from 'validator';
+import Toast from './Toast.vue';
+
 export default {
   name: 'SignIp',
   data() {
     return {
-      username: '',
+      email: '',
       password: '',
       passwordVisible: false, // Add password visibility toggle state
-      link_backend: "https://abe4-188-146-152-16.ngrok-free.app",
       moder: false,
       responseData: "",
-      showToast: false,  
-      toastMessage: '', 
-      toastType: 'success' 
     };
   },
+  components: {
+    Toast, 
+  },
+  computed:{
+    isEmailValid() {
+      return validator.isEmail(this.email);
+    },
+    isPasswordValid() {
+      return validator.isLength(this.password, { min: 8 });
+    }
+  },
   methods: {
+
+    showCustomError() {
+      const toastRef = this.$refs.toastRef;
+      toastRef.message = 'Custom error message from parent!';
+      toastRef.notificationClass = 'error-toast'; // Set as error
+      toastRef.showNotificationMessage(); // Trigger toast
+    },
     async handleSubmit() {
       await this.getToken();
     },
     async getToken() {
+      const toastRef = this.$refs.toastRef; // Reference the toast
+
+      if (!this.isEmailValid || !this.isPasswordValid ) {
+        this.errorMessage = "Please correct your email or password.";
+        this.showToast = true;
+        setTimeout(() => { this.showToast = false; }, 3000);
+        return;
+      }
+
       const params = new URLSearchParams();
-      params.append("username", this.username);
+      params.append("username", this.email);
       params.append("password", this.password);
 
       try {
-        const response = await fetch(this.link_backend + "/token", {
+        const response = await fetch(this.$link_backend + "/token", {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -73,23 +109,27 @@ export default {
         if (!response.ok) {
           const data = await response.json();
           this.responseData = data.detail;
-          this.showToastMessage('Error logging in: ' + this.responseData, 'error');
+          toastRef.message = 'Error logging in: ' + this.responseData.detail;
+          toastRef.notificationClass = 'error-toast';  // Class for error
 
         } else {
           const data = await response.json();
           localStorage.setItem('authToken', data.access_token);
-
+          toastRef.message ='Successfully';
+          toastRef.notificationClass = 'success-toast';  // Class for success
           await this.authorization();
         }
       } catch (error) {
         console.error("Error fetching token:", error);
-        this.showToastMessage('Network error. Please try again.', 'error');
-
+        toastRef.message = 'Network error. Please try again.'+error;
+        toastRef.notificationClass = 'error-toast';  // Class for error
       }
+      this.$refs.toastRef.showNotificationMessage();  
     },
     async authorization() {
+      const toastRef = this.$refs.toastRef; // Reference the toast
       try {
-        const response = await fetch(this.link_backend + "/users/me", {
+        const response = await fetch(this.$link_backend + "/users/me", {
           method: 'GET',
           headers: {
             'Content-type': 'application/json',
@@ -101,67 +141,44 @@ export default {
         if (!response.ok) {
           const data = await response.json();
           this.responseData = data.detail;
-          this.showToastMessage('Error authorizing user: ' + this.responseData, 'error');
+          toastRef.message ='Error authorizing user: ' + this.responseData;
+          toastRef.notificationClass = 'error-toast';  // Class for error
 
         } else {
           const data = await response.json();
           this.moder = data.is_moder;
-          this.showToastMessage('Successfully logged in!', 'success');
+          toastRef.message ='Successfully logged in!';
+          toastRef.notificationClass = 'success-toast';  // Class for success
 
           this.$router.push('/'); 
         }
       } catch (error) {
         console.error("Error during authorization:", error);
-        this.showToastMessage('Network error. Please try again.', 'error');
+        toastRef.message ='Network error. Please try again.'+error;
+        toastRef.notificationClass = 'error-toast';  // Class for error
 
       }
+      this.$refs.toastRef.showNotificationMessage();  
+
     },
     togglePasswordVisibility() {
       this.passwordVisible = !this.passwordVisible; 
     },
-    showToastMessage(message, type) {
-    this.toastMessage = message;
-    this.toastType = type;
-    this.showToast = true;
-
-    setTimeout(() => {
-      this.showToast = false;
-    }, 3000);
-  }
   }
 };
 </script>
 
 <style scoped>
-.toast {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #333;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
-  font-size: 16px;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.5s ease, visibility 0s 0.5s;
-  z-index: 9999;
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+  position: absolute;
+  left: 0;
+  top: 100%;
 }
 
-.toast.show {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.5s ease, visibility 0s 0s;
-}
 
-.toast.success {
-  background-color: #4caf50; /* Green for success */
-}
-
-.toast.error {
-  background-color: #f44336; /* Red for error */
-}
 .login-container {
   position: relative;
   display: flex;

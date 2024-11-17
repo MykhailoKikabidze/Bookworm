@@ -1,9 +1,7 @@
 <template>
-  <div >{{ check() }}</div>
+  <div>{{ check() }}</div>
   <div id="app">
-    <div class="toast" :class="['toast', notificationClass, { show: showNotification }]">
-    {{ message }}
-  </div>    <header class="navbar">
+    <header class="navbar">
       <router-link to="/" class="logo">BOOK WORM</router-link>
       <nav>
         <router-link to="/library"><i class="fas fa-book"></i> Library</router-link>
@@ -23,35 +21,62 @@
 
         <!-- Settings dropdown visible only if logged in -->
         <div class="settings-dropdown" v-if="isLoggedIn">
-      <a href="#" class="settings-button">
-        <i class="fas fa-cogs"></i> Settings
-      </a>
-      <div class="settings-menu">
-        <form @submit.prevent="updateSettings">
-          <div class="form-group">
-            <label for="username">New Username</label>
-            <input type="text" id="username" v-model="newUsername" required />
-            <button type="button" @click="changeName()">Save Username</button>
-          </div>
-          <div class="form-group">
-  <label for="password">New Password</label>
-  <div class="password-wrapper">
-    <input
-      :type="passwordVisible ? 'text' : 'password'"
-      id="password"
-      v-model="newPassword"
-      required
-    />
-    <span class="eye-icon" @click="togglePasswordVisibility">
-      <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-    </span>
-  </div>
-  <button type="button" @click="changePassword()">Save Password</button>
-</div>
-          <button type="button" class="delete-account-button" @click="deleteAccount()">Delete Account</button>
-        </form>
+          <a href="#" class="settings-button">
+            <i class="fas fa-cogs"></i> Settings
+          </a>
+          <div class="settings-menu">
+            <form @submit.prevent="updateSettings">
+              <div class="form-group">
+                <label for="username">New Username</label>
+                <input type="text" id="username" v-model="newUsername" required />
+                <button type="button" @click="changeName()">Save Username</button>
+              </div>
+              <div class="form-group">
+                <label for="password">New Password</label>
+                <div class="password-wrapper">
+                  <input
+                    :type="passwordVisible ? 'text' : 'password'"
+                    id="password"
+                    v-model="password"
+                    :class="{ 'input-error': !isPasswordValid && password.length > 0 }"
+                    required
+                  />
+                  <span v-if="!isPasswordValid && password.length > 0" class="error-message">
+                    Password must be at least 8 characters.
+                  </span>
+                  <span @click="togglePasswordVisibility" class="eye-icon">
+                    <i :class="passwordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                  </span>
+                </div>
+              </div>
+              <br>
+              <div class="form-group">
+                <label for="confirm-password">Confirm Password</label>
+                <div class="password-wrapper">
+                  <input
+                    :type="passwordVisible ? 'text' : 'password'"
+                    id="confirm-password"
+                    v-model="confirmPassword"
+                    :class="{ 'input-error': confirmPassword && confirmPassword !== password }"
+                    required
+                  />
+                  <span v-if="confirmPassword && confirmPassword !== password" class="error-message">
+                    Passwords do not match.
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="changePassword()"
+                :disabled="!isPasswordValid || confirmPassword !== password"
+              >
+                Save Password
+              </button>
+            </form>
+            <button type="button" class="delete-account-button" @click="deleteAccount()">Delete Account</button>
           </div>
         </div>
+
         <!-- Log In / Log Out Button -->
         <router-link :to="isLoggedIn ? '/' : '/sign_in'" @click="toggleLogin">
           <i class="fas fa-sign-in-alt"></i> {{ isLoggedIn ? 'Log Out' : 'Log In' }}
@@ -68,10 +93,14 @@
         </div>
       </div>
     </section>
+    <Toast ref="toastRef" />
   </div>
 </template>
 
 <script>
+import validator from 'validator';
+import Toast from './Toast.vue';
+
 export default {
   name: 'App',
   data() {
@@ -80,118 +109,131 @@ export default {
       displayedText: '',
       typingIndex: 0,
       typingSpeed: 100,
-      link_backend: "https://abe4-188-146-152-16.ngrok-free.app",
       searchQuery: '',
-      isLoggedIn: false, // User login status
+      isLoggedIn: false,
       username: '',
-      message: '',
-      showNotification: false,  // New property to show/hide notification
-      notificationClass: '',  
       password: '',
-      passwordVisible: false 
+      confirmPassword: '',
+      passwordVisible: false,
+      newUsername: '',
     };
   },
+  components: {
+    Toast,
+  },
   computed: {
-    messageClass() {
-      return this.message.includes('successfully') ? 'success-message' : 'error-message';
+    isPasswordValid() {
+      return validator.isLength(this.password, { min: 8 });
     },
   },
   methods: {
+    showCustomError() {
+      const toastRef = this.$refs.toastRef;
+      toastRef.message = 'Custom error message from parent!';
+      toastRef.notificationClass = 'error-toast';
+      toastRef.showNotificationMessage();
+    },
     togglePasswordVisibility() {
       this.passwordVisible = !this.passwordVisible;
     },
     async changeName() {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("new_username", this.newUsername);
+      const url = `${this.$link_backend}/users/name?${params.toString()}`;
+      
       try {
-        const params = new URLSearchParams();
-        params.append("new_username", this.newUsername);
-
-        const url = `${this.link_backend}/users/name?${params.toString()}`;
-
         const response = await fetch(url, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             "Authorization": "Bearer " + localStorage.getItem('authToken'),
-            "ngrok-skip-browser-warning": "anyValue"
-          }
-        });
-
-        if (response.ok) {
-          this.message = 'Username successfully changed!';
-          this.notificationClass = 'success-toast';  // Class for success
-        } else {
-          const data = await response.json();
-          this.message = data.detail || 'Error changing username.';
-          this.notificationClass = 'error-toast';  // Class for error
-        }
-      } catch (error) {
-        this.message = 'Error changing username.';
-        this.notificationClass = 'error-toast';  // Class for error
-      }
-      this.showNotificationMessage();
-    },
-    async changePassword() {
-      try {
-        const params = new URLSearchParams();
-        params.append("new_password", this.newPassword);
-
-        const url = `${this.link_backend}/users/password?${params.toString()}`;
-
-        const response = await fetch(url, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            "Authorization": "Bearer " + localStorage.getItem('authToken'),
-            "ngrok-skip-browser-warning": "anyValue"
+            "ngrok-skip-browser-warning": "anyValue",
           },
         });
 
-      if (response.ok) {
-          this.message = 'Password successfully changed!';
-          this.notificationClass = 'success-toast';  // Class for success
-          this.newPassword = '';  
+        if (response.ok) {
+          toastRef.message = 'Username successfully changed!';
+          toastRef.notificationClass = 'success-toast';
         } else {
           const data = await response.json();
-          this.message = data.detail || 'Error changing password.';
-          this.notificationClass = 'error-toast';  // Class for error
+          toastRef.message = data.detail || 'Error changing username.';
+          toastRef.notificationClass = 'error-toast';
         }
       } catch (error) {
-        this.message = 'Error changing password.';
-        this.notificationClass = 'error-toast';  // Class for error
+        toastRef.message = 'Error changing username.';
+        toastRef.notificationClass = 'error-toast';
       }
-      this.showNotificationMessage();
+      this.username='';
+      this.$refs.toastRef.showNotificationMessage();
     },
+    async changePassword() {
+      if (!this.isPasswordValid || this.confirmPassword !== this.password) {
+        this.showCustomError();
+        return;
+      }
 
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("new_password", this.password);
+
+      try {
+        const url = `${this.$link_backend}/users/password?${params.toString()}`;
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            "Authorization": "Bearer " + localStorage.getItem('authToken'),
+            "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          toastRef.message = 'Password successfully changed!';
+          toastRef.notificationClass = 'success-toast';
+        } else {
+          const data = await response.json();
+          toastRef.message = data.detail || 'Error changing password.';
+          toastRef.notificationClass = 'error-toast';
+        }
+      } catch (error) {
+        toastRef.message = 'Error changing password.';
+        toastRef.notificationClass = 'error-toast';
+      }
+      this.password='';
+      this.confirmPassword='';
+      this.$refs.toastRef.showNotificationMessage();
+    },
     async deleteAccount() {
       const confirmation = confirm("Are you sure you want to delete your account? This action is irreversible.");
       if (!confirmation) return;
+
+      const toastRef = this.$refs.toastRef;
       try {
-        const response = await fetch(this.link_backend + "/users", {
+        const response = await fetch(this.$link_backend + "/users", {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             "Authorization": "Bearer " + localStorage.getItem('authToken'),
-            "ngrok-skip-browser-warning": "anyValue"
-          }
+            "ngrok-skip-browser-warning": "anyValue",
+          },
         });
 
         if (response.ok) {
           localStorage.removeItem("authToken");
           window.location.reload();
-          this.message = 'Account deleted successfully.';
-          this.notificationClass = 'success-toast';  // Class for success
+          toastRef.message = 'Account deleted successfully.';
+          toastRef.notificationClass = 'success-toast';
         } else {
           const data = await response.json();
-          this.message = data.detail || 'Error deleting account.';
-          this.notificationClass = 'error-toast';  // Class for error
+          toastRef.message = data.detail || 'Error deleting account.';
+          toastRef.notificationClass = 'error-toast';
         }
       } catch (error) {
-        console.error("Error posting data:", error);
-        this.message = 'Error deleting account.';
-        this.notificationClass = 'error-toast';  // Class for error
-
+        toastRef.message = 'Error deleting account.';
+        toastRef.notificationClass = 'error-toast';
       }
-      this.showNotificationMessage();
+      this.$refs.toastRef.showNotificationMessage();
     },
     typeText() {
       if (this.typingIndex < this.fullText.length) {
@@ -202,49 +244,33 @@ export default {
     },
     performSearch() {
       console.log(`Searching for: ${this.searchQuery}`);
-      // Implement your actual search functionality here (e.g., API call)
     },
     toggleLogin() {
       if (this.isLoggedIn) {
         const confirmation = confirm("Are you sure you want to log out?");
         if (confirmation) {
-          // Clear the token from localStorage
           localStorage.removeItem("authToken");
           this.isLoggedIn = false;
         }
       } else {
-        // Navigate to the login page if not logged in
-        this.$router.push('/sign_in');
+        this.isLoggedIn = true;
       }
     },
-    updateSettings() {
-      alert(`Changes saved!\nUsername: ${this.username}\nPassword: ${this.password}`);
-      // Add logic to save settings (e.g., update user profile)
-    }
-    ,check()
-    {
+    check() {
       const token = localStorage.getItem("authToken");
-    if (token) {
-      this.isLoggedIn = true; // Set the user as logged in if a token is present
-    } else {
-      this.isLoggedIn = false; // Ensure logged-out state if no token
-    }
-    this.typeText();
+      if (token) {
+        this.isLoggedIn = true;
+      } else {
+        this.isLoggedIn = false;
+      }
     },
-
-    showNotificationMessage() {
-    this.showNotification = true; // Show the toast
-    setTimeout(() => {
-      this.showNotification = false; // Hide the toast after 3 seconds
-      this.message = ''; // Clear the message
-    }, 3000); // Adjust the duration (in milliseconds) as desired
   },
-},
   mounted() {
-  }
+    this.check();
+    this.typeText();
+  },
 };
 </script>
-
 
 <style>
 /* Reset */
@@ -253,6 +279,16 @@ export default {
   padding: 0;
   box-sizing: border-box;
 }
+
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+  position: absolute;
+  left: 0;
+  top: 100%;
+}
+
 .password-wrapper {
   position: relative;
 }
@@ -266,36 +302,6 @@ export default {
   color: #002f5b;
 }
 
-
-.toast {
-  position: fixed;
-  bottom: 20px; /* distance from the bottom of the viewport */
-  left: 50%; /* centers the toast horizontally */
-  transform: translateX(-50%); /* adjust it so that it's centered */
-  background-color: #333; /* dark background */
-  color: white;
-  padding: 15px 30px;
-  border-radius: 8px;
-  font-size: 16px;
-  opacity: 0; /* Initially invisible */
-  visibility: hidden; /* Hidden by default */
-  transition: opacity 0.5s ease, visibility 0s 0.5s; /* Smooth fade-out */
-  z-index: 9999; /* Make sure the toast is on top */
-}
-
-.toast.show {
-  opacity: 1; /* Make the toast visible */
-  visibility: visible; /* Ensure it's visible */
-  transition: opacity 0.5s ease, visibility 0s 0s; /* Smooth fade-in */
-}
-
-.success-toast {
-  background-color: #4caf50; /* Green for success */
-}
-
-.error-toast {
-  background-color: #f44336; /* Red for errors */
-}
 
 html, body {
   width: 100%;
@@ -498,8 +504,6 @@ section.banner {
 .settings-menu .form-group {
   margin-bottom: 10px;
 }
-
-
 
 .settings-menu input {
   width: 100%;

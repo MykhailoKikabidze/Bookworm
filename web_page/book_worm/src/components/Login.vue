@@ -80,7 +80,6 @@ export default {
       confirmPassword: '',
       email: '',
       responseData: null,
-      link_backend: "https://abe4-188-146-152-16.ngrok-free.app",
       loginFailed: false,
       errorMessage: "",
       token: "",
@@ -108,7 +107,7 @@ export default {
       const params = new URLSearchParams();
       params.append("username", this.email);
       params.append("password", this.password);
-      const response = await fetch(this.link_backend + "/token", {
+      const response = await fetch(this.$link_backend + "/token", {
        method: 'POST',
        headers: {
        'Content-Type': 'application/x-www-form-urlencoded',
@@ -142,7 +141,7 @@ export default {
           is_moder: true
         });
 
-        const response = await fetch(this.link_backend + "/users", {
+        const response = await fetch(this.$link_backend + "/users", {
           method: 'POST',
           headers: {
             'Content-type': 'application/json',

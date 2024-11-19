@@ -11,6 +11,24 @@
             <button type="button" @click="saveUsername" class="save-username-button">Save Username</button>
           </div>
           <div class="form-group">
+            <label for="password">Current Password</label>
+            <div class="password-wrapper">
+              <input
+                :type="currentPasswordVisible ? 'text' : 'password'"
+                id="password"
+                v-model="currentPassword"
+                :class="{ 'input-error': !isPasswordValid && currentPassword.length > 0 }"
+                required
+              />
+              <span v-if="!isPasswordValid && currentPassword.length > 0" class="error-message">
+                Password must be at least 8 characters.
+              </span>
+              <span @click="toggleCurrentPasswordVisibility" class="eye-icon">
+                <i :class="currentPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </span>
+            </div>
+          </div>
+          <div class="form-group">
             <label for="password">New Password</label>
             <div class="password-wrapper">
               <input
@@ -32,7 +50,7 @@
             <label for="confirm-password">Confirm Password</label>
             <div class="password-wrapper">
               <input
-                :type="confirmPasswordVisible ? 'text' : 'password'"
+                :type="'password'"
                 id="confirm-password"
                 v-model="confirmPassword"
                 :class="{ 'input-error': confirmPassword && confirmPassword !== newPassword }"
@@ -40,9 +58,6 @@
               />
               <span v-if="confirmPassword && confirmPassword !== newPassword" class="error-message">
                 Passwords do not match.
-              </span>
-              <span @click="toggleConfirmPasswordVisibility" class="eye-icon">
-                <i :class="confirmPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
               </span>
             </div>
           </div>
@@ -70,10 +85,11 @@
     data() {
       return {
         newUsername: "",
+        currentPassword: "",
         newPassword: "",
         confirmPassword: "",
         newPasswordVisible: false,  // Independent state for new password visibility
-        confirmPasswordVisible: false,  // Independent state for confirm password visibility
+        currentPasswordVisible: false,  // Independent state for confirm password visibility
         notificationMessage: "",  // Holds the notification message
         notificationClass: "",  // Holds the class for the notification style (success/error)
       };
@@ -84,11 +100,11 @@
       },
     },
     methods: {
+      toggleCurrentPasswordVisibility() {
+        this.currentPasswordVisible = !this.currentPasswordVisible;
+      },
       toggleNewPasswordVisibility() {
         this.newPasswordVisible = !this.newPasswordVisible;
-      },
-      toggleConfirmPasswordVisibility() {
-        this.confirmPasswordVisible = !this.confirmPasswordVisible;
       },
       async saveUsername() {
         const params = new URLSearchParams();
@@ -123,6 +139,11 @@
           this.showNotification('Passwords do not match.', 'error-toast');
           return;
         }
+
+        //to do
+        //from  GET "users/me" take the our mail
+        //then PUT "/token" with this.currentPassword if ok continue (PUT "users/password")
+        //if doesn't -> current password writing by user is incorrect (show toast) 
   
         const params = new URLSearchParams();
         params.append("new_password", this.newPassword);

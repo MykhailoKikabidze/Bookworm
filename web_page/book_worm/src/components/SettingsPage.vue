@@ -77,15 +77,21 @@
   
         <button type="button" class="delete-account-button" @click="deleteAccount">Delete Account</button>
       </div>
+      <Toast ref="toastRef" />
+
     </div>
   </template>
   
   <script>
+  import Toast from './Toast.vue';
+
   export default {
     data() {
       return {
         newUsername: "",
         currentPassword: "",
+        correctPassword: false,
+        email:"",
         newPassword: "",
         confirmPassword: "",
         newPasswordVisible: false,  // Independent state for new password visibility
@@ -94,6 +100,9 @@
         notificationClass: "",  // Holds the class for the notification style (success/error)
       };
     },
+    components: {
+    Toast,
+  },
     computed: {
       isPasswordValid() {
         return this.newPassword.length >= 8;
@@ -106,6 +115,31 @@
       toggleNewPasswordVisibility() {
         this.newPasswordVisible = !this.newPasswordVisible;
       },
+      async authorization() {
+      try {
+        const response = await fetch(this.$link_backend + "/users/me", {
+          method: 'GET',
+          headers: {
+            'Content-type': 'application/json',
+            "Authorization": "Bearer " + localStorage.getItem('authToken'),
+            "ngrok-skip-browser-warning": "anyValue"
+          },
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          this.responseData = data.detail;
+
+        } else {
+          const data = await response.json();
+          this.email=data.login;
+        }
+      } catch (error) {
+        console.error("Error during authorization:", error);
+
+      }
+
+    },
       async saveUsername() {
         const params = new URLSearchParams();
         params.append("new_username", this.newUsername);
@@ -129,7 +163,32 @@
           this.showNotification('Error updating username.', 'error-toast');
         }
       },
-  
+      async getToken() {
+      const toastRef = this.$refs.toastRef;
+
+      const params = new URLSearchParams();
+      params.append("username", this.email);
+      params.append("password", this.currentPassword);
+      const response = await fetch(this.$link_backend + "/token", {
+       method: 'POST',
+       headers: {
+       'Content-Type': 'application/x-www-form-urlencoded',
+         "ngrok-skip-browser-warning": "anyValue"
+       },
+       body: params
+      });
+        if (!response.ok) {
+          const data = await response.json();
+          this.correctPassword=true;
+          toastRef.message =data.detail + ' current password writing by user is incorrect';
+          toastRef.notificationClass = 'error-toast';
+        }
+        else{
+          this.correctPassword=false;
+        }
+     this.$refs.toastRef.showNotificationMessage();
+
+    },
       async savePassword() {
         if (!this.isPasswordValid) {
           this.showNotification('Password must be at least 8 characters long.', 'error-toast');
@@ -137,6 +196,14 @@
         }
         if (this.newPassword !== this.confirmPassword) {
           this.showNotification('Passwords do not match.', 'error-toast');
+          return;
+        }
+        
+        await this.authorization();
+        await this.getToken();
+
+        if(this.correctPassword)
+        {
           return;
         }
 

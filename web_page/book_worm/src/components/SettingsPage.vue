@@ -1,7 +1,9 @@
 <template>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+
     <div class="settings-container">
       <div class="overlay"></div> <!-- Semi-transparent overlay -->
-  
+     
       <div class="form-container">
         <h1>Update Settings</h1>
         <form @submit.prevent="updateSettings">
@@ -444,6 +446,7 @@
   .save-username-button {
   margin-top: 20px; /* Możesz dostosować tę wartość */
 }
+
 
   </style>
   

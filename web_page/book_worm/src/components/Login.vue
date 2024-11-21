@@ -126,54 +126,62 @@ export default {
         }
     },
     async postData() {
-      if (!this.isEmailValid || !this.isPasswordValid || this.confirmPassword !== this.password) {
-        this.errorMessage = "Please correct your email or password.";
-        this.showToast = true;
-        setTimeout(() => { this.showToast = false; }, 3000);
-        return;
+  if (!this.isEmailValid || !this.isPasswordValid || this.confirmPassword !== this.password) {
+    this.errorMessage = "Please correct your email or password.";
+    this.showToast = true;
+    setTimeout(() => { this.showToast = false; }, 3000);
+    return;
+  }
+
+  try {
+    const jsonData = JSON.stringify({
+      name: this.username,  // Przechowuj username
+      password: this.password,
+      login: this.email,    // E-mail służy do logowania
+      is_moder: true
+    });
+
+    const response = await fetch(this.$link_backend + "/users", {
+      method: 'POST',
+      headers: {
+        'Content-type': 'application/json',
+        "ngrok-skip-browser-warning": "anyValue"
+      },
+      body: jsonData
+    });
+
+    if (response.ok) {
+      await this.getToken();
+      // Zapisz username do localStorage
+      localStorage.setItem('username', this.username);
+    } else {
+      const data = await response.json();
+      if (data.detail && data.detail.includes("already exists")) {
+        this.errorMessage = "User already has an account. Please sign in instead.";
+      } else {
+        this.errorMessage = "Invalid email or password. Please try again.";
       }
+      this.showToast = true;
+      setTimeout(() => { this.showToast = false; }, 3000);
+    }
 
-      try {
-        const jsonData = JSON.stringify({
-          name: this.username,
-          password: this.password,
-          login: this.email,
-          is_moder: true
-        });
+  } catch (error) {
+    console.error("Error posting data:", error);
+    this.errorMessage = "Error connecting to server. Please try again later.";
+    this.showToast = true;
+    setTimeout(() => { this.showToast = false; }, 3000);
+  }
+}
 
-        const response = await fetch(this.$link_backend + "/users", {
-          method: 'POST',
-          headers: {
-            'Content-type': 'application/json',
-            "ngrok-skip-browser-warning": "anyValue"
-          },
-          body: jsonData
-        });
-
-        if (response.ok) {
-          await this.getToken();
-        } else {
-          const data = await response.json();
-          if (data.detail && data.detail.includes("already exists")) {
-            this.errorMessage = "User already has an account. Please sign in instead.";
-          } else {
-            this.errorMessage = "Invalid email or password. Please try again.";
-          }
-          this.showToast = true;
-          setTimeout(() => { this.showToast = false; }, 3000);
-        }
-
-      } catch (error) {
-        console.error("Error posting data:", error);
-        this.errorMessage = "Error connecting to server. Please try again later."+{error};
-        this.showToast = true;
-        setTimeout(() => { this.showToast = false; }, 3000);
-      }
+  },
+  mounted() {
+    // Jeśli username jest zapisane w localStorage, załaduj go do komponentu
+    if (localStorage.getItem('username')) {
+      this.username = localStorage.getItem('username');
     }
   }
 };
 </script>
-
 
 <style scoped>
 .toast {

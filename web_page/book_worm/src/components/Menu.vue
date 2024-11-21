@@ -21,11 +21,11 @@
 
         <!-- Settings dropdown visible only if logged in -->
         <div class="settings-dropdown" v-if="isLoggedIn">
-          <a href="/settings" class="settings-button" target="" rel="noopener noreferrer">
-  <i class="fas fa-cogs"></i> Settings
-</a>
-          
-        </div>
+  <a href="/settings" class="settings-button" target="" rel="noopener noreferrer">
+    <i class="fas fa-user"></i> <span class="username">{{ username }}</span>
+  </a>
+</div>
+
 
         <!-- Log In / Log Out Button -->
         <router-link :to="isLoggedIn ? '/' : '/sign_in'" @click="toggleLogin">
@@ -61,7 +61,7 @@ export default {
       typingSpeed: 100,
       searchQuery: '',
       isLoggedIn: false,
-      username: '',
+      username: localStorage.getItem('username') || 'Guest',
       password: '',
       confirmPassword: '',
       passwordVisible: false,
@@ -95,6 +95,7 @@ export default {
       const params = new URLSearchParams();
       params.append("new_username", this.newUsername);
       const url = `${this.$link_backend}/users/name?${params.toString()}`;
+
       
       try {
         const response = await fetch(url, {
@@ -133,6 +134,7 @@ export default {
 
       try {
         const url = `${this.$link_backend}/users/password?${params.toString()}`;
+
         const response = await fetch(url, {
           method: 'PUT',
           headers: {
@@ -198,6 +200,7 @@ export default {
     },
     performSearch() {
       console.log(`Searching for: ${this.searchQuery}`);
+
     },
     toggleLogin() {
       if (this.isLoggedIn) {
@@ -520,8 +523,8 @@ html {
 @media (max-width: 576px) {
   .navbar nav a,
   .navbar .settings-button {
-    font-size: 1.1em; /* Minimize font size for very small screens */
-    padding: 5px 10px; /* Adjust padding for small screens */
+    font-size: 1.2em; /* Minimize font size for very small screens */
+    padding: 7px 2px; /* Adjust padding for small screens */
     border-radius: 10px; /* Ensure border-radius is consistent */
     outline: none; /* Remove focus outline */
     border: none; /* Remove border if any */
@@ -529,5 +532,14 @@ html {
 
   
 }
+
+.fas.fa-cogs {
+  font-weight: bold;  /* Ustawienie grubości dla ikony */
+}
+
+.username {
+  font-weight: bold;  /* Ustawienie grubości dla tekstu użytkownika */
+}
+
 
 </style>

@@ -135,6 +135,7 @@
         } else {
           const data = await response.json();
           this.email=data.login;
+          localStorage.setItem('username', data.name);
         }
       } catch (error) {
         console.error("Error during authorization:", error);
@@ -161,10 +162,14 @@
     });
 
     if (response.ok) {
+      await this.authorization();
+      
       this.showNotification('Username successfully updated!', 'success-toast');
+      setTimeout(() =>{window.location.reload();}, 1500);
+
     } else {
       const data = await response.json();
-      this.showNotification(data.detail || 'Error updating username.', 'error-toast');
+      this.showNotification(data || 'Error updating username.', 'error-toast');
     }
   } catch (error) {
     this.showNotification('Error updating username.', 'error-toast');

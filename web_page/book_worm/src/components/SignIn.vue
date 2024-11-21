@@ -149,7 +149,7 @@ export default {
           this.moder = data.is_moder;
           toastRef.message ='Successfully logged in!';
           toastRef.notificationClass = 'success-toast';  // Class for success
-
+          localStorage.setItem('username', data.name);
           this.$router.push('/'); 
         }
       } catch (error) {

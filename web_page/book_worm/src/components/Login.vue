@@ -151,9 +151,9 @@ export default {
     });
 
     if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem('username', data.name);
       await this.getToken();
-      // Zapisz username do localStorage
-      localStorage.setItem('username', this.username);
     } else {
       const data = await response.json();
       if (data.detail && data.detail.includes("already exists")) {

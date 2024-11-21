@@ -13,41 +13,44 @@
             <button type="button" @click="saveUsername" class="save-username-button">Save Username</button>
           </div>
           <div class="form-group">
-            <label for="password">Current Password</label>
-            <div class="password-wrapper">
-              <input
-                :type="currentPasswordVisible ? 'text' : 'password'"
-                id="password"
-                v-model="currentPassword"
-                :class="{ 'input-error': !isPasswordValid && currentPassword.length > 0 }"
-                required
-              />
-              <span v-if="!isPasswordValid && currentPassword.length > 0" class="error-message">
-                Password must be at least 8 characters.
-              </span>
-              <span @click="toggleCurrentPasswordVisibility" class="eye-icon">
-                <i :class="currentPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-              </span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="password">New Password</label>
-            <div class="password-wrapper">
-              <input
-                :type="newPasswordVisible ? 'text' : 'password'"
-                id="password"
-                v-model="newPassword"
-                :class="{ 'input-error': !isPasswordValid && newPassword.length > 0 }"
-                required
-              />
-              <span v-if="!isPasswordValid && newPassword.length > 0" class="error-message">
-                Password must be at least 8 characters.
-              </span>
-              <span @click="toggleNewPasswordVisibility" class="eye-icon">
-                <i :class="newPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-              </span>
-            </div>
-          </div>
+  <label for="password">Current Password</label>
+  <div class="password-wrapper">
+    <input
+      :type="currentPasswordVisible ? 'text' : 'password'"
+      id="password"
+      v-model="currentPassword"
+      :class="{ 'input-error': !isCurrentPasswordValid && currentPassword.length > 0 }"
+      required
+    />
+    <span v-if="!isCurrentPasswordValid && currentPassword.length > 0" class="error-message">
+      Password must be at least 8 characters.
+    </span>
+    <span @click="toggleCurrentPasswordVisibility" class="eye-icon">
+      <i :class="currentPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+    </span>
+  </div>
+</div>
+
+<div class="form-group">
+  <label for="password">New Password</label>
+  <div class="password-wrapper">
+    <input
+      :type="newPasswordVisible ? 'text' : 'password'"
+      id="password"
+      v-model="newPassword"
+      :class="{ 'input-error': !isPasswordValid && newPassword.length > 0 }"
+      required
+    />
+    <!-- Show error message if password is not valid (less than 8 characters) -->
+    <span v-if="!isPasswordValid && newPassword.length > 0" class="error-message">
+      Password must be at least 8 characters.
+    </span>
+    <span @click="toggleNewPasswordVisibility" class="eye-icon">
+      <i :class="newPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+    </span>
+  </div>
+</div>
+
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
             <div class="password-wrapper">
@@ -105,11 +108,16 @@
     components: {
     Toast,
   },
-    computed: {
-      isPasswordValid() {
-        return this.newPassword.length >= 8;
-      },
-    },
+  computed: {
+  isPasswordValid() {
+    return this.newPassword.length >= 8;
+  },
+  isCurrentPasswordValid() {
+    return this.currentPassword.length >= 8; // Validate the current password length
+  },
+},
+
+
     methods: {
       toggleCurrentPasswordVisibility() {
         this.currentPasswordVisible = !this.currentPasswordVisible;
@@ -249,30 +257,33 @@
       },
   
       async deleteAccount() {
-        const confirmation = confirm("Are you sure you want to delete your account? This action is irreversible.");
-        if (!confirmation) return;
-  
-        try {
-          const response = await fetch(`${this.$link_backend}/users`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
-            },
-          });
-  
-          if (response.ok) {
-            localStorage.removeItem("authToken");
-            window.location.reload();
-            this.showNotification('Account deleted successfully.', 'success-toast');
-          } else {
-            const data = await response.json();
-            this.showNotification(data.detail || 'Error deleting account.', 'error-toast');
-          }
-        } catch (error) {
-          this.showNotification('Error deleting account.', 'error-toast');
-        }
+  const confirmation = confirm("Are you sure you want to delete your account? This action is irreversible.");
+  if (!confirmation) return;
+
+  try {
+    const response = await fetch(`${this.$link_backend}/users`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
       },
+    });
+
+    if (response.ok) {
+      localStorage.removeItem("authToken");
+      this.showNotification('Account deleted successfully.', 'success-toast');
+      setTimeout(() => {
+        this.$router.push('/'); // Redirect to the main page (assuming the route is set to '/')
+      }, 1500); // Wait for the notification to be displayed before redirecting
+    } else {
+      const data = await response.json();
+      this.showNotification(data.detail || 'Error deleting account.', 'error-toast');
+    }
+  } catch (error) {
+    this.showNotification('Error deleting account.', 'error-toast');
+  }
+}
+,
   
       showNotification(message, type) {
         this.notificationMessage = message;

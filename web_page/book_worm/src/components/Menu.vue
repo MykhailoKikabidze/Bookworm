@@ -213,6 +213,10 @@ export default {
       this.$refs.toastRef.showNotificationMessage();
     },
 
+    printText() {
+      console.log(this.fullText);
+    },
+
     typeText() {
       if (this.typingIndex < this.fullText.length) {
         this.displayedText += this.fullText.charAt(this.typingIndex);
@@ -220,6 +224,7 @@ export default {
         setTimeout(this.typeText, this.typingSpeed);
       }
     },
+  
 
     performSearch() {
       console.log(`Searching for: ${this.searchQuery}`);
@@ -257,7 +262,9 @@ export default {
     },
   },
   mounted() {
-  this.syncUsernameFromLocalStorage(); // Ensure the username is correct when mounted
+  this.syncUsernameFromLocalStorage();
+  this.printText();
+    this.typeText(); // Ensure the username is correct when mounted
 },
 
   watch: {

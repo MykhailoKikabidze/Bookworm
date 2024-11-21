@@ -103,6 +103,32 @@ export default {
     toggleConfirmPasswordVisibility() {
       this.confirmPasswordVisible = !this.confirmPasswordVisible;
     },
+    async authorization() {
+      try {
+        const response = await fetch(this.$link_backend + "/users/me", {
+          method: 'GET',
+          headers: {
+            'Content-type': 'application/json',
+            "Authorization": "Bearer " + localStorage.getItem('authToken'),
+            "ngrok-skip-browser-warning": "anyValue"
+          },
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          this.responseData = data.detail;
+
+        } else {
+          const data = await response.json();
+          this.email=data.login;
+          localStorage.setItem('username', data.name);
+        }
+      } catch (error) {
+        console.error("Error during authorization:", error);
+
+      }
+
+    },
     async getToken() {
       const params = new URLSearchParams();
       params.append("username", this.email);
@@ -122,6 +148,7 @@ export default {
           const data = await response.json();
           this.token = data.access_token;
           localStorage.setItem('authToken',this.token);
+          await this.authorization();
           this.$router.push('/'); 
         }
     },
@@ -151,8 +178,6 @@ export default {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      localStorage.setItem('username', data.name);
       await this.getToken();
     } else {
       const data = await response.json();
@@ -175,10 +200,7 @@ export default {
 
   },
   mounted() {
-    // Jeśli username jest zapisane w localStorage, załaduj go do komponentu
-    if (localStorage.getItem('username')) {
-      this.username = localStorage.getItem('username');
-    }
+  
   }
 };
 </script>

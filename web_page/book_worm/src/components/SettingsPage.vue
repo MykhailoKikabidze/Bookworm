@@ -270,11 +270,13 @@
     });
 
     if (response.ok) {
+      localStorage.removeItem('username'); 
       localStorage.removeItem("authToken");
+
       this.showNotification('Account deleted successfully.', 'success-toast');
       setTimeout(() => {
-        this.$router.push('/'); // Redirect to the main page (assuming the route is set to '/')
-      }, 1500); // Wait for the notification to be displayed before redirecting
+        this.$router.push('/'); 
+      }, 1500); 
     } else {
       const data = await response.json();
       this.showNotification(data.detail || 'Error deleting account.', 'error-toast');

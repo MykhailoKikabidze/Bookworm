@@ -198,6 +198,7 @@ export default {
 
         if (response.ok) {
           localStorage.removeItem("authToken");
+          localStorage.removeItem('username');
           window.location.reload();
           toastRef.message = 'Account deleted successfully.';
           toastRef.notificationClass = 'success-toast';
@@ -237,7 +238,6 @@ export default {
           localStorage.removeItem("authToken");
           this.isLoggedIn = false;
           localStorage.removeItem('username');  // Remove username from localStorage
-      this.username = ('username'); 
         }
       } else {
         this.isLoggedIn = true;
@@ -251,6 +251,8 @@ export default {
       } else {
         this.isLoggedIn = false;
       }
+      this.syncUsernameFromLocalStorage();
+
     },
 
     // Sync username whenever localStorage is updated
@@ -264,14 +266,14 @@ export default {
   mounted() {
   this.syncUsernameFromLocalStorage();
   this.printText();
-    this.typeText(); // Ensure the username is correct when mounted
+  this.typeText(); // Ensure the username is correct when mounted
 },
 
   watch: {
-    // Watch username changes and update localStorage
-    username(newValue) {
-      localStorage.setItem('username', newValue);
-    }
+    // // Watch username changes and update localStorage
+    // username(newValue) {
+    //   localStorage.setItem('username', newValue);
+    // }
   }
 };
 </script>

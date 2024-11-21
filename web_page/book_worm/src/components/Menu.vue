@@ -2,7 +2,7 @@
   <div>{{ check() }}</div>
   <div id="app">
     <header class="navbar">
-      <router-link to="/" class="logo">BOOK WORM </router-link>
+      <router-link to="/" class="logo">BOOK WORM</router-link>
       <nav>
         <router-link to="/library"><i class="fas fa-book"></i> Library</router-link>
         <div class="dropdown">
@@ -21,10 +21,11 @@
 
         <!-- Settings dropdown visible only if logged in -->
         <div class="settings-dropdown" v-if="isLoggedIn">
-  <a href="/settings" class="settings-button" target="" rel="noopener noreferrer">
+  <router-link to="/settings" class="settings-button">
     <i class="fas fa-user"></i> <span class="username">{{ username }}</span>
-  </a>
+  </router-link>
 </div>
+
 
 
         <!-- Log In / Log Out Button -->
@@ -61,7 +62,7 @@ export default {
       typingSpeed: 100,
       searchQuery: '',
       isLoggedIn: false,
-      username: localStorage.getItem('username') || 'Guest',
+      username: localStorage.getItem('username') || 'Guest', // Initial value from localStorage
       password: '',
       confirmPassword: '',
       passwordVisible: false,
@@ -69,8 +70,10 @@ export default {
     };
   },
   created() {
-    // Assuming you store the username during the login process
-    this.username = localStorage.getItem('username'); // or however you store it after login
+    window.addEventListener('storage', this.syncUsernameFromLocalStorage); // Sync when localStorage is updated
+  },
+  beforeDestroy() {
+    window.removeEventListener('storage', this.syncUsernameFromLocalStorage); // Clean up listener
   },
   components: {
     Toast,
@@ -81,22 +84,38 @@ export default {
     },
   },
   methods: {
+    logout() {
+      localStorage.removeItem('username');  // Remove username from localStorage
+      this.username = '';  // Reset username in component state
+    },
+
+    updateUsername(newUsername) {
+      this.username = newUsername;  // Update username in component state
+      localStorage.setItem('username', newUsername);  // Save username to localStorage
+    },
+
+    login() {
+      const newUsername = 'NowaPoczta@przyklad.com';  // New username example
+      this.updateUsername(newUsername);  // Update username in component and localStorage
+    },
+
     showCustomError() {
       const toastRef = this.$refs.toastRef;
       toastRef.message = 'Custom error message from parent!';
       toastRef.notificationClass = 'error-toast';
       toastRef.showNotificationMessage();
     },
+
     togglePasswordVisibility() {
       this.passwordVisible = !this.passwordVisible;
     },
+
     async changeName() {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
       params.append("new_username", this.newUsername);
       const url = `${this.$link_backend}/users/name?${params.toString()}`;
 
-      
       try {
         const response = await fetch(url, {
           method: 'PUT',
@@ -119,9 +138,10 @@ export default {
         toastRef.message = 'Error changing username.';
         toastRef.notificationClass = 'error-toast';
       }
-      this.username='';
+      this.username = ''; // Clear the input
       this.$refs.toastRef.showNotificationMessage();
     },
+
     async changePassword() {
       if (!this.isPasswordValid || this.confirmPassword !== this.password) {
         this.showCustomError();
@@ -156,10 +176,11 @@ export default {
         toastRef.message = 'Error changing password.';
         toastRef.notificationClass = 'error-toast';
       }
-      this.password='';
-      this.confirmPassword='';
+      this.password = '';
+      this.confirmPassword = '';
       this.$refs.toastRef.showNotificationMessage();
     },
+
     async deleteAccount() {
       const confirmation = confirm("Are you sure you want to delete your account? This action is irreversible.");
       if (!confirmation) return;
@@ -191,6 +212,7 @@ export default {
       }
       this.$refs.toastRef.showNotificationMessage();
     },
+
     typeText() {
       if (this.typingIndex < this.fullText.length) {
         this.displayedText += this.fullText.charAt(this.typingIndex);
@@ -198,21 +220,25 @@ export default {
         setTimeout(this.typeText, this.typingSpeed);
       }
     },
+
     performSearch() {
       console.log(`Searching for: ${this.searchQuery}`);
-
     },
+
     toggleLogin() {
       if (this.isLoggedIn) {
         const confirmation = confirm("Are you sure you want to log out?");
         if (confirmation) {
           localStorage.removeItem("authToken");
           this.isLoggedIn = false;
+          localStorage.removeItem('username');  // Remove username from localStorage
+      this.username = ('username'); 
         }
       } else {
         this.isLoggedIn = true;
       }
     },
+
     check() {
       const token = localStorage.getItem("authToken");
       if (token) {
@@ -221,13 +247,29 @@ export default {
         this.isLoggedIn = false;
       }
     },
+
+    // Sync username whenever localStorage is updated
+    syncUsernameFromLocalStorage() {
+      const storedUsername = localStorage.getItem('username');
+      if (storedUsername && storedUsername !== this.username) {
+        this.username = storedUsername;
+      }
+    },
   },
   mounted() {
-    this.check();
-    this.typeText();
-  },
+  this.syncUsernameFromLocalStorage(); // Ensure the username is correct when mounted
+},
+
+  watch: {
+    // Watch username changes and update localStorage
+    username(newValue) {
+      localStorage.setItem('username', newValue);
+    }
+  }
 };
 </script>
+
+
 
 <style>
 /* Reset */

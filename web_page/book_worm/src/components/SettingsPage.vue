@@ -142,29 +142,35 @@
       }
 
     },
-      async saveUsername() {
-        const params = new URLSearchParams();
-        params.append("new_username", this.newUsername);
-  
-        try {
-          const response = await fetch(`${this.$link_backend}/users/name?${params.toString()}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
-            },
-          });
-  
-          if (response.ok) {
-            this.showNotification('Username successfully updated!', 'success-toast');
-          } else {
-            const data = await response.json();
-            this.showNotification(data.detail || 'Error updating username.', 'error-toast');
-          }
-        } catch (error) {
-          this.showNotification('Error updating username.', 'error-toast');
-        }
+    async saveUsername() {
+  if (!this.newUsername.trim()) { // Sprawdzamy, czy pole nie jest puste lub zawiera tylko białe znaki
+    this.showNotification('Please enter a new username.', 'error-toast');
+    return; // Zatrzymujemy wykonanie funkcji, jeśli pole jest puste
+  }
+
+  const params = new URLSearchParams();
+  params.append("new_username", this.newUsername);
+
+  try {
+    const response = await fetch(`${this.$link_backend}/users/name?${params.toString()}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
       },
+    });
+
+    if (response.ok) {
+      this.showNotification('Username successfully updated!', 'success-toast');
+    } else {
+      const data = await response.json();
+      this.showNotification(data.detail || 'Error updating username.', 'error-toast');
+    }
+  } catch (error) {
+    this.showNotification('Error updating username.', 'error-toast');
+  }
+},
+
       async getToken() {
       const toastRef = this.$refs.toastRef;
 

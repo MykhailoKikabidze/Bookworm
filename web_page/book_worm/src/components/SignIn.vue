@@ -150,6 +150,7 @@ export default {
           toastRef.message ='Successfully logged in!';
           toastRef.notificationClass = 'success-toast';  // Class for success
           localStorage.setItem('username', data.name);
+          localStorage.setItem('moder', data.is_moder);
           this.$router.push('/'); 
         }
       } catch (error) {

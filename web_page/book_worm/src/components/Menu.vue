@@ -19,6 +19,9 @@
         <router-link to="/topics"><i class="fas fa-tag"></i> Topics</router-link>
         <router-link to="/contact"><i class="fas fa-envelope"></i> Contact</router-link>
 
+        <div v-if="isModer" >
+          <button>moder</button>
+        </div>
         <!-- Settings dropdown visible only if logged in -->
         <div class="settings-dropdown" v-if="isLoggedIn">
   <router-link to="/settings" class="settings-button">
@@ -61,6 +64,7 @@ export default {
       typingIndex: 0,
       typingSpeed: 100,
       searchQuery: '',
+      isModer: false,
       isLoggedIn: false,
       username: localStorage.getItem('username') || 'Guest', // Initial value from localStorage
       password: '',
@@ -237,10 +241,13 @@ export default {
         if (confirmation) {
           localStorage.removeItem("authToken");
           this.isLoggedIn = false;
-          localStorage.removeItem('username');  // Remove username from localStorage
+          localStorage.removeItem("username");  // Remove username from localStorage
+          localStorage.removeItem("moder"); 
+          this.isModer=false;
         }
       } else {
         this.isLoggedIn = true;
+        this.isModer=true;
       }
     },
 
@@ -251,6 +258,11 @@ export default {
       } else {
         this.isLoggedIn = false;
       }
+    
+      if(localStorage.getItem("moder")=="true"){
+        this.isModer=true;
+      }
+      else this.isModer=false;
       this.syncUsernameFromLocalStorage();
 
     },
@@ -264,7 +276,6 @@ export default {
     },
   },
   mounted() {
-  this.syncUsernameFromLocalStorage();
   this.printText();
   this.typeText(); // Ensure the username is correct when mounted
 },

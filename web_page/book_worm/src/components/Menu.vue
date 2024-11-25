@@ -19,9 +19,11 @@
         <router-link to="/topics"><i class="fas fa-tag"></i> Topics</router-link>
         <router-link to="/contact"><i class="fas fa-envelope"></i> Contact</router-link>
 
-        <div v-if="isModer" >
-          <button>moder</button>
-        </div>
+        <div v-if="isModer" class="add-button-container">
+  <!-- Modern Styled Button with Icon -->
+  <router-link to="/add" class="add-button"><i class="fas fa-plus"></i> Add</router-link>
+</div>
+
         <!-- Settings dropdown visible only if logged in -->
         <div class="settings-dropdown" v-if="isLoggedIn">
   <router-link to="/settings" class="settings-button">
@@ -602,6 +604,15 @@ html {
 .username {
   font-weight: bold;  /* Ustawienie grubości dla tekstu użytkownika */
 }
+
+
+.add-button-container {
+  display: flex; /* Aby zapewnić kontrolowanie położenia elementów wewnętrznych */
+  justify-content: center; /* Centrujemy przycisk w poziomie */
+  margin-top: 1px; /* Zwiększamy odległość od góry, dostosuj w zależności od potrzeb */
+}
+
+
 
 
 </style>

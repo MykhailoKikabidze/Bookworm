@@ -8,7 +8,7 @@ class UsersScheme(BaseModel):
     name: str
     login: str
     password: Optional[str] = None
-    is_moder: bool
+    is_moder: bool = False
 
 
 class UserError(Error):

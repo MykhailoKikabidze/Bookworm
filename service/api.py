@@ -102,7 +102,8 @@ async def login_for_access_token(
     db: AsyncSession = Depends(get_db_session),
 ):
     user = await authenticate_user(db, form_data.username, form_data.password)
-    if not user or isinstance(user, schemas.UserError):
+
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

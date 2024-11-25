@@ -9,6 +9,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+
     return pwd_context.verify(plain_password, hashed_password)
 
 
@@ -27,6 +28,7 @@ async def authenticate_user(
     db: AsyncSession, username: str, password: str
 ) -> Union[bool, schemas.UserError]:
     user: models.UsersModel | None = await get_user(db, username)
+
     if not user:
         return False
     if not verify_password(password, user.password):
@@ -43,7 +45,7 @@ async def authorize_user(
     user.password = get_password_hash(user.password)
 
     user_db = models.UsersModel(
-        name=user.name, login=user.login, password=user.password, is_moder=user.is_moder
+        name=user.name, login=user.login, password=user.password, is_moder=False
     )
 
     async with db as session:

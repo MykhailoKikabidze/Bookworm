@@ -1,20 +1,35 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import (
+    FastAPI,
+    Depends,
+    HTTPException,
+    status,
+    File,
+    UploadFile,
+    Form,
+    Body,
+)
 from fastapi.middleware.cors import CORSMiddleware
 
 import auth.schemas
+from books.models import BookModel
 from db import AsyncSessionLocal
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import StreamingResponse
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from auth.crud import get_user, authenticate_user, authorize_user
 from setting.crud import change_username, change_password, delete_account
 from auth import schemas, models
+from books.schemas import BookScheme
+from books.crud import add_book, search_book_by_title, get_books_paginated
 import uvicorn
 import asyncio
 import json
 import typing
 import os
+import io
+from minio import Minio, S3Error
 
 
 app = FastAPI()
@@ -27,6 +42,12 @@ with open(settings_path, "r") as file:
 SECRET_KEY = data["SECRET_KEY"]
 ALGORITHM = data["ALGORITHM"]
 ACCESS_TOKEN_EXPIRE_MINUTES = data["ACCESS_TOKEN_EXPIRE_MINUTES"]
+MINIO_HOST = os.getenv("MINIO_HOST", "localhost")
+MINIO_PORT = os.getenv("MINIO_PORT", "9000")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "your_access_key")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "your_secret_key")
+BUCKET_NAME_BOOKS = "books"
+BUCKET_NAME_IMG_BOOKS = "books-img"
 
 
 app.add_middleware(
@@ -35,6 +56,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition", "Location"],
 )
 
 
@@ -49,6 +71,20 @@ async def get_db_session() -> AsyncSession:
             yield session
         finally:
             await session.close()
+
+
+minio_client = Minio(
+    f"{MINIO_HOST}:{MINIO_PORT}",
+    access_key=MINIO_ACCESS_KEY,
+    secret_key=MINIO_SECRET_KEY,
+    secure=False,
+)
+
+if not minio_client.bucket_exists(BUCKET_NAME_BOOKS):
+    minio_client.make_bucket(BUCKET_NAME_BOOKS)
+
+if not minio_client.bucket_exists(BUCKET_NAME_IMG_BOOKS):
+    minio_client.make_bucket(BUCKET_NAME_IMG_BOOKS)
 
 
 async def run_server() -> None:
@@ -169,3 +205,161 @@ async def delete_user(
 ):
     await delete_account(db, curr_user)
     return {"status": 200}
+
+
+@app.post("/books/", tags=["moderation"], response_model=dict)
+async def add_book_full(
+    book_sch: BookScheme = Depends(),
+    authors: list[str] = Form(...),
+    themes: list[str] = Form(...),
+    genres: list[str] = Form(...),
+    file_img_book: UploadFile = File(...),
+    file_book: UploadFile = File(...),
+    curr_user: models.UsersModel = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    if not curr_user.is_moder:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is not a moderator",
+        )
+
+    try:
+        file_image_content = await file_img_book.read()
+        file_book_content = await file_book.read()
+
+        if len(file_image_content) == 0 or len(file_book_content) == 0:
+            raise HTTPException(status_code=400, detail="One or both files are empty.")
+
+        file_book_stream = io.BytesIO(file_book_content)
+        file_image_stream = io.BytesIO(file_image_content)
+
+        file_name_image = book_sch.title + "_IMG"
+        file_name_book = book_sch.title
+
+        if not minio_client.bucket_exists(BUCKET_NAME_BOOKS):
+            minio_client.make_bucket(BUCKET_NAME_BOOKS)
+
+        if not minio_client.bucket_exists(BUCKET_NAME_IMG_BOOKS):
+            minio_client.make_bucket(BUCKET_NAME_IMG_BOOKS)
+
+        minio_client.put_object(
+            bucket_name=BUCKET_NAME_BOOKS,
+            object_name=file_name_book,
+            data=file_book_stream,
+            length=len(file_book_content),
+            content_type=file_book.content_type,
+        )
+        file_book_url = (
+            f"http://{MINIO_HOST}:{MINIO_PORT}/{BUCKET_NAME_BOOKS}/{file_name_book}"
+        )
+
+        minio_client.put_object(
+            bucket_name=BUCKET_NAME_IMG_BOOKS,
+            object_name=file_name_image,
+            data=file_image_stream,
+            length=len(file_image_content),
+            content_type=file_img_book.content_type,
+        )
+        file_img_url = f"http://{MINIO_HOST}:{MINIO_PORT}/{BUCKET_NAME_IMG_BOOKS}/{file_name_image}"
+
+    except S3Error as e:
+        raise HTTPException(status_code=500, detail=f"Exception MinIO: {str(e)}")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cannot load file: {str(e)}")
+
+    load_book_sch = book_sch.model_copy()
+    load_book_sch.url = file_book_url
+    load_book_sch.url_img = file_img_url
+
+    res = await add_book(db, load_book_sch, authors, themes, genres)
+
+    if not res:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Book already exists",
+        )
+
+    return {"status": 200}
+
+
+@app.get("/books/file", tags=["library"])
+async def get_book_file(title: str, db: AsyncSession = Depends(get_db_session)):
+    book: BookModel = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Book doesn't exists",
+        )
+    url: str = book.url
+    file_name: str = url.split("/")[-1]
+
+    try:
+
+        response = minio_client.get_object(BUCKET_NAME_BOOKS, file_name)
+
+        return StreamingResponse(
+            response,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename={file_name}"},
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {str(e)}"
+        )
+
+
+@app.get("/books/img", tags=["library"])
+async def get_book_img(title: str, db: AsyncSession = Depends(get_db_session)):
+    book: BookModel = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Book doesn't exists",
+        )
+    url_img: str = book.url_img
+    file_name: str = url_img.split("/")[-1]
+
+    try:
+
+        response = minio_client.get_object(BUCKET_NAME_IMG_BOOKS, file_name)
+
+        return StreamingResponse(
+            response,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename={file_name}"},
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {str(e)}"
+        )
+
+
+@app.get("/books/info", tags=["library"], response_model=BookScheme)
+async def get_book_info(title: str, db: AsyncSession = Depends(get_db_session)):
+    book: BookModel = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Book doesn't exists",
+        )
+    book_sch: BookScheme = BookScheme(
+        title=book.title,
+        year_of_pub=book.year_of_pub,
+        url=book.url,
+        url_img=book.url_img,
+        num_of_pages=book.num_of_pages,
+        description=book.description,
+        publisher=book.publisher,
+    )
+
+    return book_sch
+
+
+@app.get("/books/all", tags=["library"], response_model=list[BookScheme])
+async def get_book_all(
+    page: int, page_size: int, db: AsyncSession = Depends(get_db_session)
+):
+    books: list[BookModel] = await get_books_paginated(db, page, page_size)
+    return books

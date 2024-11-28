@@ -33,7 +33,7 @@ export default {
       setTimeout(() => {
         this.visible = false; // Hide the toast after 3 seconds
         this.message = ''; // Clear the message
-      }, 3000); // Duration (in milliseconds)
+      }, 10000); // Duration (in milliseconds)
     },
   },
 };

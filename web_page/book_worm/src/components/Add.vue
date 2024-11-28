@@ -1,5 +1,7 @@
 <template>
     <div id="app">
+      <button @click="addBooks()">Suaa Book</button>
+
       <!-- Add Book Section -->
       <section id="add-book" class="background-section">
         <h1>Add a Book</h1>
@@ -75,7 +77,7 @@
   
             <!-- Display Book Cover Image and Remove Button -->
             <div v-if="newBook.cover">
-              <img :src="newBook.cover" alt="Book Cover" class="book-cover-preview" />
+              <img :src="displayCover" alt="Book Cover" class="book-cover-preview" />
               <button type="button" @click="removeBookCover" class="remove-cover-btn">Remove Cover</button>
             </div>
           </div>
@@ -93,8 +95,8 @@
       <button type="button" @click="removeBookFile" class="remove-file-btn">Delete File</button>
     </div>
   </div>
-  
-          <button type="submit" class="submit-btn">Add Book</button>
+
+          <button @click="addBooks()" type="submit" class="submit-btn" >Add Book</button>
         </form>
       </section>
   
@@ -108,7 +110,7 @@
               <em>Themes:</em> {{ book.themes.join(', ') }} <br />
               <p>{{ book.description }}</p>
               <div v-if="book.cover">
-                <img :src="book.cover" alt="Book Cover" class="book-cover-preview" />
+                <img :src="displayCovera" alt="Book Cover" class="book-cover-preview" />
                 <button @click="removeBookCover(book)" class="remove-btn">Remove Cover</button>
               </div>
               <p><strong>Year of Publication:</strong> {{ book.publicationYear }}</p>
@@ -119,10 +121,13 @@
           </li>
         </ul>
       </section>
+      <Toast ref="toastRef" />
+
     </div>
   </template>
   
   <script>
+  import Toast from './Toast.vue';
   export default {
     data() {
       return {
@@ -154,6 +159,9 @@
         themesDropdownVisible: false,
       };
     },
+    components: {
+    Toast,
+  },
     methods: {
     addBook() {
       if (this.newBook.title && this.newBook.authors.length > 0 && this.newBook.description && this.newBook.genres.length > 0) {
@@ -178,6 +186,7 @@
       this.newBook = {
         title: '',
         authors: [],
+        displayCover: [],
         description: '',
         genres: [],
         themes: [],
@@ -192,7 +201,9 @@
       const file = event.target.files[0];
       if (file) {
         // Create URL for the selected file
-        this.newBook.cover = URL.createObjectURL(file);
+        this.newBook.cover = file;
+        this.displayCover = URL.createObjectURL(file);
+
       }
     },
     removeBookCover() {
@@ -207,6 +218,100 @@
     removeBookFile() {
       this.newBook.file = null; // Removes the selected book file
     }
+  ,
+  async fetchWithRedirect(url, options = {}) {
+  let response = await fetch(url, options);
+
+  // Проверяем, есть ли код 307 (или другой код редиректа, если нужно)
+  if (response.status === 307) {
+    const location = response.headers.get('Location');
+    if (location) {
+      // Выполняем повторный запрос по новому URL
+      console.log(`Redirecting to: ${location}`);
+      response = await fetch(location, options);
+    } else {
+      throw new Error('Redirect without Location header');
+    }
+  }
+
+  return response;
+},
+    handleImageUpload(event) {
+  this.selectedImage = event.target.files[0];
+},
+
+handleFileUpload(event) {
+  this.selectedFile = event.target.files[0];
+},
+async addBooks() {
+  const toastRef = this.$refs.toastRef; // Reference for notifications
+
+  // Check if files are selected
+  if (!this.newBook.file || !this.newBook.cover) {
+    toastRef.message = "File(s) are missing.";
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    return;
+  }
+
+  try {
+    // Define query parameters
+    const params = {
+      title: this.newBook.title,
+      year_of_pub: this.newBook.publicationYear,
+      num_of_pages: this.newBook.numberOfPages,
+      description: this.newBook.description,
+      publisher: this.newBook.publisher,
+    };
+
+    // Construct the query string
+    const queryPar = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      queryPar.append(key, String(value)); // Convert all values to strings
+    }
+
+    // Create FormData object for files and additional JSON body data
+    const formData = new FormData();
+    formData.append("authors", this.newBook.author);
+    formData.append("themes", this.newBook.themes);
+    formData.append("genres", this.newBook.genres);
+    formData.append("file_img_book", this.newBook.cover); // Add image file
+    formData.append("file_book", this.newBook.file); // Add EPUB file
+
+    // Execute the POST request
+    const response = await fetch(`${this.$link_backend}/books/?${queryPar.toString()}`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+      },
+      body: formData, // Use FormData as the request body
+    });
+
+    // Handle response
+    if (!response.ok) {
+      const errorData = await response.json();
+      toastRef.message = errorData.detail || "Error adding the book.";
+      toastRef.notificationClass = "error-toast";
+      this.$refs.toastRef.showNotificationMessage();
+      return;
+    }
+
+    const result = await response.json();
+    toastRef.message = "The book has been successfully added!";
+    toastRef.notificationClass = "success-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    console.log(result);
+  } catch (error) {
+    console.error("Error:", error);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+  }
+}
+,
+
+    
   }
   
   };

@@ -1,7 +1,5 @@
 <template>
     <div id="app">
-      <button @click="addBooks()">Suaa Book</button>
-
       <!-- Add Book Section -->
       <section id="add-book" class="background-section">
         <h1>Add a Book</h1>
@@ -110,7 +108,7 @@
               <em>Themes:</em> {{ book.themes.join(', ') }} <br />
               <p>{{ book.description }}</p>
               <div v-if="book.cover">
-                <img :src="displayCovera" alt="Book Cover" class="book-cover-preview" />
+                <img :src="displayCover" alt="Book Cover" class="book-cover-preview" />
                 <button @click="removeBookCover(book)" class="remove-btn">Remove Cover</button>
               </div>
               <p><strong>Year of Publication:</strong> {{ book.publicationYear }}</p>

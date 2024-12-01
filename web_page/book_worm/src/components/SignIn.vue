@@ -109,7 +109,7 @@ export default {
         if (!response.ok) {
           const data = await response.json();
           this.responseData = data.detail;
-          toastRef.message = 'Error logging in: ' + this.responseData.detail;
+          toastRef.message = 'Error logging in: ' + this.responseData;
           toastRef.notificationClass = 'error-toast';  // Class for error
 
         } else {

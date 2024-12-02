@@ -94,7 +94,7 @@
     </div>
   </div>
 
-          <button @click="addBooks()" type="submit" class="submit-btn" >Add Book</button>
+          <button @click="addBooks()" type="submit" class="submit-btn">Add Book</button>
         </form>
       </section>
   
@@ -137,6 +137,7 @@
           genres: [],
           themes: [],
           cover: null,
+          displayCover: [],
           publicationYear: '',
           numberOfPages: '',
           publishingHouse: '',
@@ -259,7 +260,7 @@ async addBooks() {
       year_of_pub: this.newBook.publicationYear,
       num_of_pages: this.newBook.numberOfPages,
       description: this.newBook.description,
-      publisher: this.newBook.publisher,
+      publisher: this.newBook.publishingHouse,
     };
 
     // Construct the query string
@@ -270,7 +271,7 @@ async addBooks() {
 
     // Create FormData object for files and additional JSON body data
     const formData = new FormData();
-    formData.append("authors", this.newBook.author);
+    formData.append("authors", this.newBook.authors);
     formData.append("themes", this.newBook.themes);
     formData.append("genres", this.newBook.genres);
     formData.append("file_img_book", this.newBook.cover); // Add image file

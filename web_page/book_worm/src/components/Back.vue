@@ -274,7 +274,14 @@ displayBookMetadata() {
 
         if (response.ok) {
           const data = await response.json();
-
+          
+          this.books = data.map(book => ({
+            title: book.title,
+            description: book.description || "No description available.",
+            genres: book.genres || [],
+            author: book.author || "Unknown Author",
+            published_date: book.published_date || "Unknown Date",
+          }));
           // Loop through the fetched books and download their images
           for (const book of data) {
             await this.downloadImage(book.title);

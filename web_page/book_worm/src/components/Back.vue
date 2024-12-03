@@ -10,6 +10,11 @@
       <p>{{ this.book.description }}</p>
 
     </div>
+    <button @click="getSubstr('me')">get Substr</button>
+    <div>
+      <p>{{ this.name }} {{ this.surname }} </p>
+
+    </div>
     <!-- Button to download all book images -->
     <button @click="downloadImages">Download All Images</button>
 
@@ -67,6 +72,8 @@ export default {
     book: [],
     imageUrl: null, // Holds the downloaded image URL
     responseData: "", 
+    name: "s",
+    surname: "s",
     displayMetadata: false, // Flag to toggle metadata display
     selectedImage: null, // To store the chosen image file
     selectedFile: null,  // To store the chosen EPUB file
@@ -268,7 +275,7 @@ displayBookMetadata() {
           method: "GET",
           headers: {
             "Content-type": "application/json",
-            "ngrok-skip-browser-warning": "anyValue",
+            'bypass-tunnel-reminder': 'any-value' 
           },
         });
 
@@ -312,7 +319,7 @@ displayBookMetadata() {
         const response = await fetch(`${this.$link_backend}/books/info?${params.toString()}`, {
           method: "GET",
           headers: {
-            "ngrok-skip-browser-warning": "anyValue",
+            'bypass-tunnel-reminder': 'any-value' 
           },
         });
 
@@ -349,7 +356,7 @@ displayBookMetadata() {
         const response = await fetch(`${this.$link_backend}/books/img?${params.toString()}`, {
           method: "GET",
           headers: {
-            "ngrok-skip-browser-warning": "anyValue",
+            'bypass-tunnel-reminder': 'any-value' ,
             "Authorization": "Bearer " + localStorage.getItem("authToken"),
           },
         });
@@ -371,6 +378,42 @@ displayBookMetadata() {
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },
+
+    
+    async getSubstr(substr) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("substr", substr);
+
+      try {
+        const response = await fetch(`${this.$link_backend}/author/substr?${params.toString()}`, {
+          method: "GET",
+          headers: {
+            'bypass-tunnel-reminder': 'any-value' 
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          this.name = data[0].name;
+          this.surname = data[0].surname;
+
+          toastRef.message = `Successful#"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching :" ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error :`, error);
+        toastRef.message = `Network error. Could not fetch". ${error.message}`;
         toastRef.notificationClass = "error-toast";
       }
 

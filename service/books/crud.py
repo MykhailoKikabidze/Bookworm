@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from books.models import *
-from books.schemas import BookScheme
-from sqlalchemy import select
+from books.schemas import BookScheme, AuthorScheme
+from sqlalchemy import select, or_, func, and_
 
 
 async def search_book_by_title(db: AsyncSession, title: str) -> BookModel:
@@ -18,8 +18,12 @@ async def search_book(db: AsyncSession, book_scheme: BookScheme) -> BookModel:
     return result.scalars().first()
 
 
-async def search_author(db: AsyncSession, name: str) -> AuthorModel:
-    result = await db.execute(select(AuthorModel).filter(AuthorModel.name == name))
+async def search_author(db: AsyncSession, name: str, surname: str) -> AuthorModel:
+    result = await db.execute(
+        select(AuthorModel).filter(
+            AuthorModel.name == name and AuthorModel.surname == surname
+        )
+    )
 
     return result.scalars().first()
 
@@ -40,7 +44,10 @@ async def add_book_authors(db: AsyncSession, book_sch: BookScheme, authors: list
     book = await search_book(db, book_sch)
 
     for author in authors:
-        author_book = await search_author(db, author)
+        author_lst = author.split(" ")
+        if len(author_lst) > 2:
+            author_lst = [" ".join(author_lst[:-1]), author_lst[-1]]
+        author_book = await search_author(db, author_lst[0], author_lst[1])
         if not author_book:
             continue
         async with db as session:
@@ -122,3 +129,86 @@ async def get_books_paginated(db: AsyncSession, page: int = 1, page_size: int = 
     books = query.scalars().all()
 
     return books
+
+
+async def get_authors_substr(db: AsyncSession, substr: str) -> list[AuthorModel]:
+
+    async with db as session:
+        authors = await session.execute(
+            select(AuthorModel).where(
+                or_(
+                    func.lower(AuthorModel.name).like(f"%{substr}%"),
+                    func.lower(AuthorModel.surname).like(f"%{substr}%"),
+                )
+            )
+        )
+
+    return authors.scalars().all()
+
+
+async def get_authors_of_book(db: AsyncSession, title: str) -> list[AuthorModel]:
+
+    book: BookModel = await search_book_by_title(db, title)
+
+    async with db as session:
+        res = await session.execute(
+            select(AuthorModel)
+            .join(BookAuthorModel, AuthorModel.id == BookAuthorModel.id_author)
+            .filter(BookAuthorModel.id_book == book.id)
+        )
+
+        authors = res.scalars().all()
+
+        return authors
+
+
+async def get_genres_of_book(db: AsyncSession, title: str) -> list[str]:
+
+    book: BookModel = await search_book_by_title(db, title)
+
+    async with db as session:
+        res = await session.execute(
+            select(GenreModel.name)
+            .join(BookGenreModel, GenreModel.id == BookGenreModel.id_genre)
+            .filter(BookGenreModel.id_book == book.id)
+        )
+
+        genres = res.scalars().all()
+
+        return genres
+
+
+async def get_themes_of_book(db: AsyncSession, title: str) -> list[str]:
+
+    book: BookModel = await search_book_by_title(db, title)
+
+    async with db as session:
+        res = await session.execute(
+            select(ThemeModel.name)
+            .join(BookThemeModel, ThemeModel.id == BookThemeModel.id_theme)
+            .filter(BookThemeModel.id_book == book.id)
+        )
+
+        themes = res.scalars().all()
+
+        return themes
+
+
+async def add_author(db: AsyncSession, name: str, surname: str) -> bool:
+
+    async with db as session:
+        author = await session.execute(
+            select(AuthorModel).where(
+                and_(AuthorModel.name == name, AuthorModel.surname == surname)
+            )
+        )
+
+        if author.scalars().first():
+            return False
+
+        author = AuthorModel(name=name, surname=surname)
+        session.add(author)
+        await session.commit()
+        await session.refresh(author)
+
+        return True

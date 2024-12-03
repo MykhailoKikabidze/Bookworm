@@ -50,7 +50,8 @@ class AuthorModel(Base):
     __tablename__ = "authors"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, index=True, unique=True)
+    name = Column(String, index=True)
+    surname = Column(String, index=True)
 
     books = relationship(
         "BookModel", secondary="books_authors", back_populates="authors"

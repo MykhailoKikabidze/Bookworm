@@ -9,3 +9,8 @@ class BookScheme(BaseModel):
     num_of_pages: int
     description: str
     publisher: str
+
+
+class AuthorScheme(BaseModel):
+    name: str
+    surname: str

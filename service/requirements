@@ -36,7 +36,7 @@ platformdirs==4.3.6
 psycopg2-binary==2.9.10
 pyasn1==0.6.1
 pycparser==2.22
-pycryptodome==3.21.0
+pycryptodome
 pydantic==2.9.2
 pydantic-extra-types==2.10.0
 pydantic-settings==2.6.1

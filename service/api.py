@@ -7,7 +7,6 @@ from fastapi import (
     File,
     UploadFile,
     Form,
-    Body,
 )
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,8 +20,17 @@ from datetime import datetime, timedelta
 from auth.crud import get_user, authenticate_user, authorize_user
 from setting.crud import change_username, change_password, delete_account
 from auth import schemas, models
-from books.schemas import BookScheme
-from books.crud import add_book, search_book_by_title, get_books_paginated
+from books.schemas import BookScheme, AuthorScheme
+from books.crud import (
+    add_book,
+    search_book_by_title,
+    get_books_paginated,
+    get_authors_substr,
+    get_authors_of_book,
+    get_genres_of_book,
+    get_themes_of_book,
+    add_author,
+)
 import uvicorn
 import asyncio
 import json
@@ -363,3 +371,52 @@ async def get_book_all(
 ):
     books: list[BookModel] = await get_books_paginated(db, page, page_size)
     return books
+
+
+@app.get("/author/substr", tags=["moderation"], response_model=list[AuthorScheme])
+async def search_authors_by_substr(
+    substr: str, db: AsyncSession = Depends(get_db_session)
+):
+    res = await get_authors_substr(db, substr.lower())
+    return res
+
+
+@app.get("/books/authors", tags=["library"], response_model=list[AuthorScheme])
+async def authors_of_book(title: str, db: AsyncSession = Depends(get_db_session)):
+    result = await get_authors_of_book(db, title)
+    return result
+
+
+@app.get("/books/genres", tags=["library"], response_model=list[str])
+async def genres_of_book(title: str, db: AsyncSession = Depends(get_db_session)):
+    result = await get_genres_of_book(db, title)
+    return result
+
+
+@app.get("/books/themes", tags=["library"], response_model=list[str])
+async def themes_of_book(title: str, db: AsyncSession = Depends(get_db_session)):
+    result = await get_themes_of_book(db, title)
+    return result
+
+
+@app.post("/authors", tags=["moderation"], response_model=dict)
+async def add_authors(
+    name: str,
+    surname: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    if not curr_user.is_moder:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is not a moderator",
+        )
+
+    res = await add_author(db, name, surname)
+    if res:
+        return {"status": 200}
+
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="This author already exists",
+    )

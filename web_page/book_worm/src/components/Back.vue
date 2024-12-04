@@ -2,7 +2,7 @@
   <div>   
 
     <!-- idk if it will work i just couldn't try it so it can not work properly but you can try... -->
-    <button @click="getBookInfo('Boo')">For get book info for example from Boo</button>
+    <button @click="getBookInfo('Book test')">For get book info for example from Boo</button>
     <div>
       <p>{{ this.book.publisher }}</p>
       <p>{{ this.book.year_of_pub }}</p>
@@ -12,11 +12,31 @@
     </div>
     <button @click="getSubstr('me')">get Substr</button>
     <div>
-      <p>{{ this.name }} {{ this.surname }} </p>
+      <p>{{ this.genres }} {{ this.authors }} </p>
 
     </div>
+
+    <button @click="getAuthors('Garlic $the Vampire')">get authors</button>
+    <li v-for="(person, index) in authors" :key="index">
+        Name: {{ person.name }}, Surname: {{ person.surname }}
+      </li>
     <!-- Button to download all book images -->
     <button @click="downloadImages">Download All Images</button>
+
+
+
+    <button @click="getGenres('Book test')">get genres</button>
+    <ul v-if="genres && genres.length">
+  <li v-for="(genre, index) in genres" :key="index">{{ genre }}</li>
+</ul>
+<p v-else>No genres available.</p>
+
+
+<button @click="getThemes('BOOK')">get themes</button>
+    <ul v-if="themes && themes.length">
+  <li v-for="(genre, index) in themes" :key="index">{{ genre }}</li>
+</ul>
+<p v-else>No themes available.</p>
 
     <!-- Button to display the downloaded images -->
     <button @click="displayDownloadedImages">Display Images</button>
@@ -65,6 +85,10 @@ export default {
   
   data() {
     return {
+      authors: [],
+      genres: [],
+      themes: [],
+
     downloadedImageUrls: [],  // Stores the URLs of downloaded images
     displayImages: false, 
     imageSrc: null, // To hold the image URL or blob
@@ -73,6 +97,7 @@ export default {
     imageUrl: null, // Holds the downloaded image URL
     responseData: "", 
     name: "s",
+    data: "",
     surname: "s",
     displayMetadata: false, // Flag to toggle metadata display
     selectedImage: null, // To store the chosen image file
@@ -383,6 +408,110 @@ displayBookMetadata() {
 
       this.$refs.toastRef.showNotificationMessage();
     },
+   
+    async getAuthors(title) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
+
+      try {
+        const response = await fetch(`${this.$link_backend}/books/authors?${params.toString()}`, {
+          method: "GET",
+          headers: {
+            "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          this.authors = data;
+
+          toastRef.message = `Successful#"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching: ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error :`, error);
+        toastRef.message = `Network error. Could not fetch. ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },
+    async getThemes(title) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
+
+      try {
+        const response = await fetch(`${this.$link_backend}/books/themes?${params.toString()}`, {
+          method: "GET",
+          headers: {
+            "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          this.themes = Array.isArray(data) ? data : [];
+
+          toastRef.message = `Successful#"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching: ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error :`, error);
+        toastRef.message = `Network error. Could not fetch. ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },
+    async getGenres(title) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", 'Book test');
+
+      try {
+        const response = await fetch(`${this.$link_backend}/books/genres?${params.toString()}`, {
+          method: "GET",
+          headers: {
+            "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          this.genres = Array.isArray(data) ? data : [];
+
+          console.log("Genres received:", data); // Debugging line
+          toastRef.message = `Successful#"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching: ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error :`, error);
+        toastRef.message = `Network error. Could not fetch. ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },
+
+    // Function to toggle the visibility of downloaded images
+    displayDownloadedImages() {
+      this.displayImages = !this.displayImages; // Toggle the flag
+    },
 
     
     async getSubstr(substr) {
@@ -401,8 +530,8 @@ displayBookMetadata() {
         if (response.ok) {
           const data = await response.json();
 
-          this.name = data[0].name;
-          this.surname = data[0].surname;
+          this.name = data;
+          this.surname = data.surname;
 
           toastRef.message = `Successful#"`;
           toastRef.notificationClass = "success-toast";
@@ -420,10 +549,10 @@ displayBookMetadata() {
       this.$refs.toastRef.showNotificationMessage();
     },
 
-    // Function to toggle the visibility of downloaded images
-    displayDownloadedImages() {
-      this.displayImages = !this.displayImages; // Toggle the flag
-    },
+    // // Function to toggle the visibility of downloaded images
+    // displayDownloadedImages() {
+    //   this.displayImages = !this.displayImages; // Toggle the flag
+    // },
 
 
 // async getBooksFile(title) {

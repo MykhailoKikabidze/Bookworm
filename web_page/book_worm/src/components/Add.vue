@@ -253,6 +253,14 @@ async addBooks() {
     return;
   }
 
+  // Ensure genres are selected
+  if (this.newBook.genres.length === 0) {
+    toastRef.message = "Please select at least one genre.";
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    return;
+  }
+
   try {
     // Define query parameters
     const params = {
@@ -271,11 +279,18 @@ async addBooks() {
 
     // Create FormData object for files and additional JSON body data
     const formData = new FormData();
-    formData.append("authors", this.newBook.authors);
-    formData.append("themes", this.newBook.themes);
-    formData.append("genres", this.newBook.genres);
+    formData.append("authors", JSON.stringify(this.newBook.authors)); // Serialize authors array
+    formData.append("themes", JSON.stringify(this.newBook.themes));   // Serialize themes array
+    formData.append("genres", JSON.stringify(this.newBook.genres));   // Serialize genres array
     formData.append("file_img_book", this.newBook.cover); // Add image file
     formData.append("file_book", this.newBook.file); // Add EPUB file
+
+    console.log("data received:", formData); // Debugging line
+    for (let [key, value] of formData.entries()) {
+    console.log(key, value);
+}
+const iterator = formData.entries();
+console.log([...iterator]);
 
     // Execute the POST request
     const response = await fetch(`${this.$link_backend}/books/?${queryPar.toString()}`, {

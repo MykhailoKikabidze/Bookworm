@@ -3,43 +3,136 @@
     <h1>EPUB File Viewer</h1>
 
     <!-- Download Button -->
-    <button @click="downloadBookFile('Play')">
+    <button @click="downloadBookFile('Game')">
       Download EPUB
     </button>
 
-    <!-- Display Button -->
-    <button @click="displayBookFile">
-      Display EPUB
-    </button>
-    
+    <!-- File input for EPUB -->
+    <input type="file" @change="onFileChange" />
+
+    <!-- Div container for rendering the EPUB -->
+    <div ref="viewer" style="width: 100%; height: 600px; overflow: auto;"></div>
+
+    <!-- Navigation Buttons -->
+    <button @click="goToPreviousPage" :disabled="currentPage === 0">Previous Page</button>
+    <button @click="goToNextPage" :disabled="currentPage === totalPages - 1">Next Page</button>
+
+    <!-- Display All Pages Button -->
+    <button @click="displayAllPages()">Display All Pages</button>
+
     <!-- Loading and Error Display -->
     <p v-if="isLoading" class="loading-message">Loading content...</p>
     <p v-if="errorMessage" class="error-message">Error: {{ errorMessage }}</p>
     <p v-if="message" class="message">{{ message }}</p>
     <p v-if="firstWord" class="first-word-message">First word: {{ firstWord }}</p>
-
-    <!-- Viewer Container -->
-    <div id="viewer" v-if="isDisplaying" class="epub-viewer"></div>
   </div>
 </template>
 
 <script>
-import ePub from "epubjs"; // Import ePub.js library
+import ePub from "epubjs"; // Importing the epub.js library
 
 export default {
   data() {
     return {
-      isDisplaying: false, // To track if the EPUB is being displayed
-      isLoading: false, // To track if content is loading
-      errorMessage: "", // To store error messages
-      message: "", // Message for feedback
-      book: null, // Reference to the ePub.js book instance
-      rendition: null, // Reference to the ePub.js rendition
-      bookUrl: null, // To store the URL of the fetched EPUB file
-      firstWord: "", // To store the first word of the first chapter
+      isLoading: false,       // To track if content is loading
+      errorMessage: "",       // To store error messages
+      message: "",            // Message for feedback
+      firstWord: "",          // To store the first word of the first chapter
+      book: null,             // The loaded EPUB book
+      rendition: null,        // The EPUB rendition for rendering
+      currentPage: 0,         // Current page index
+      totalPages: 0,          // Total pages in the EPUB
+      spineItems: [],         // Store the spine items for navigation
+      bookUrl: null,          // URL of the EPUB file
     };
   },
   methods: {
+    // Handle file change event when a file is selected
+    onFileChange(event) {
+      const file = event.target.files[0];
+      if (file && file.type === "application/epub+zip") {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          const arrayBuffer = e.target.result;
+          this.loadEpub(arrayBuffer);
+        };
+
+        reader.readAsArrayBuffer(file);
+      } else {
+        alert("Please select a valid EPUB file.");
+      }
+    },
+
+    // Load EPUB book into the viewer
+    loadEpub(arrayBuffer) {
+      this.book = ePub(arrayBuffer);
+
+      // Wait for the book to be fully loaded before rendering
+      this.book.ready.then(() => {
+        console.log("EPUB loaded successfully");
+
+        // Render the book to the div container
+        this.rendition = this.book.renderTo(this.$refs.viewer, {
+          width: "100%",
+          height: "100%",
+          flow: "scrolled", // Continuous scrolling layout
+        });
+
+        // Set up the spine (collection of pages)
+        this.spineItems = this.book.spine.items;
+        this.totalPages = this.spineItems.length;
+        console.log(`Total pages in the EPUB: ${this.totalPages}`);
+
+        // Initialize the current page index and display the first page
+        if (this.totalPages > 0) {
+          this.currentPage = 0;
+          this.navigateToPage(this.currentPage);
+        }
+
+        // Extract the first word of the first chapter
+        this.extractFirstWord();
+      });
+    },
+
+    // Navigate to a specific page
+    navigateToPage(index) {
+      const spineItem = this.spineItems[index];
+
+      // Ensure we are navigating to a valid page
+      if (spineItem) {
+        console.log(`Rendering page: ${spineItem.id}`);
+        this.rendition.display(spineItem.href).then(() => {
+          this.currentPage = index;
+        }).catch((err) => {
+          console.error("Error displaying the page:", err);
+        });
+      } else {
+        console.error(`Page not found in the spine: ${index}`);
+      }
+    },
+
+    // Go to the previous page
+    goToPreviousPage() {
+      if (this.currentPage > 0) {
+        this.navigateToPage(this.currentPage - 1);
+      }
+    },
+
+    // Go to the next page
+    goToNextPage() {
+      if (this.currentPage < this.totalPages - 1) {
+        this.navigateToPage(this.currentPage + 1);
+      }
+    },
+
+    // Display all pages (for debugging purposes)
+    displayAllPages() {
+      for (let i = 0; i < this.totalPages; i++) {
+        this.navigateToPage(i);
+      }
+    },
+
     // Function to download the EPUB file
     async downloadBookFile(title) {
       try {
@@ -67,6 +160,9 @@ export default {
           link.click();
 
           this.message = "EPUB file downloaded successfully.";
+
+          // Load and display the downloaded EPUB file immediately after downloading
+          this.loadEpub(blob);
         } else {
           const errorData = await response.json();
           this.errorMessage =
@@ -77,51 +173,20 @@ export default {
       }
     },
 
-    // Function to display the EPUB content in the viewer
-    async displayBookFile() {
-      if (!this.bookUrl) {
-        this.errorMessage = "No EPUB file available to display.";
-        return;
-      }
-
+    // Extract the first word from the first chapter
+    async extractFirstWord() {
       try {
-        this.errorMessage = ""; // Reset error message
-        this.isDisplaying = false; // Reset displaying state
-        this.message = "Fetching EPUB content..."; // Initial message
-        this.isLoading = true; // Start loading state
-
-        // Initialize the ePub.js book instance
-        this.book = ePub(this.bookUrl);
-
-        // Render the EPUB content in the viewer
-        const viewerElement = document.getElementById("viewer");
-        this.rendition = this.book.renderTo(viewerElement, {
-          width: "100%",
-          height: "100%",
-        });
-
-        // Display the first page
-        this.rendition.display();
-
-        this.rendition.on("rendered", (section) => {
-          console.log("Page rendered:", section);
-          this.message = "EPUB content loaded successfully.";
-          this.isDisplaying = true;
-        });
-
-        // Extract the first word
         const spine = await this.book.loaded.spine;
         const firstItem = spine.items[0];
         const firstText = await firstItem.load(this.book.load.bind(this.book));
         const content = new DOMParser().parseFromString(firstText, "text/html");
         this.firstWord = content.body.textContent.split(/\s+/)[0];
       } catch (error) {
-        this.errorMessage = `An error occurred while displaying the book: ${error.message}`;
-      } finally {
-        this.isLoading = false; // End loading state
+        this.errorMessage = `An error occurred while extracting the first word: ${error.message}`;
       }
     },
   },
+
   beforeDestroy() {
     // Clean up resources when the component is destroyed
     if (this.rendition) {
@@ -156,17 +221,6 @@ button {
 
 button:hover {
   background-color: #45a049;
-}
-
-.epub-viewer {
-  margin-top: 20px;
-  border: 1px solid #ccc;
-  height: 500px; /* Set height for better display */
-  overflow: auto;
-  background-color: #f9f9f9;
-  padding: 15px;
-  font-size: 16px;
-  color: black;
 }
 
 .loading-message {

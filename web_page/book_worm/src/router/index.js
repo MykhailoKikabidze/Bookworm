@@ -13,6 +13,8 @@ import Login from '../components/Login.vue'; // Import Login component
 import SignIn from '../components/SignIn.vue'; // Import SignIn component
 import SettingsPage from '../components/SettingsPage.vue'; // Import SettingsPage component
 import AddBooks from '../components/Add.vue'; // Import AddBooks component
+import AddAuthor from '../components/AddAuthor.vue'; // Import AddAuthor component
+import Add from '../components/Add.vue'; // Importuj komponent Add.vue
 
 const routes = [
   { path: '/', name: 'Home', component: FirstPage },
@@ -27,7 +29,9 @@ const routes = [
   { path: '/sign_in', name: 'SignIN', component: SignIn },
   { path: '/login', name: 'Login', component: Login },
   { path: '/settings', name: 'Settings', component: SettingsPage },
+  { path: '/add-author', name: 'AddAuthor', component: AddAuthor },
   { path: '/add', name: 'Add', component: AddBooks }, // Route for AddBooks page
+  { path: '/add', name: 'Add', component: Add }, // Definicja trasy dla Add.vue
 ];
 
 const router = createRouter({

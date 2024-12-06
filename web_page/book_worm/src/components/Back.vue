@@ -2,7 +2,7 @@
   <div>   
 
     <!-- idk if it will work i just couldn't try it so it can not work properly but you can try... -->
-    <button @click="getBookInfo('Book test')">For get book info for example from Boo</button>
+    <button @click="getBookInfo('Garlic & the Vampire')">For get book info for example from Boo</button>
     <div>
       <p>{{ this.book.publisher }}</p>
       <p>{{ this.book.year_of_pub }}</p>
@@ -11,12 +11,15 @@
 
     </div>
     <button @click="getSubstr('me')">get Substr</button>
-    <div>
-      <p>{{ this.genres }} {{ this.authors }} </p>
+    <li v-for="(person, index) in authorsForSerching" :key="index">
+        Name: {{ person.name }}, Surname: {{ person.surname }}
+      </li>
 
-    </div>
+    <p>
+      Authors name: {{ this.name }}, Surname {{ this.surname }}
+    </p>
 
-    <button @click="getAuthors('Garlic $the Vampire')">get authors</button>
+    <button @click="getAuthors('Garlic & the Vampire')">get authors</button>
     <li v-for="(person, index) in authors" :key="index">
         Name: {{ person.name }}, Surname: {{ person.surname }}
       </li>
@@ -25,7 +28,7 @@
 
 
 
-    <button @click="getGenres('Book test')">get genres</button>
+    <button @click="getGenres('Garlic & the Vampire')">get genres</button>
     <ul v-if="genres && genres.length">
   <li v-for="(genre, index) in genres" :key="index">{{ genre }}</li>
 </ul>
@@ -87,6 +90,7 @@ export default {
     return {
       authors: [],
       genres: [],
+      authorsForSerching: [],
       themes: [],
 
     downloadedImageUrls: [],  // Stores the URLs of downloaded images
@@ -292,7 +296,7 @@ displayBookMetadata() {
     async downloadImages() {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
-      params.append("page", 1);
+      params.append("page", 2);
       params.append("page_size", 10);
 
       try {
@@ -300,7 +304,7 @@ displayBookMetadata() {
           method: "GET",
           headers: {
             "Content-type": "application/json",
-            'bypass-tunnel-reminder': 'any-value' 
+            "ngrok-skip-browser-warning": "anyValue",
           },
         });
 
@@ -344,7 +348,7 @@ displayBookMetadata() {
         const response = await fetch(`${this.$link_backend}/books/info?${params.toString()}`, {
           method: "GET",
           headers: {
-            'bypass-tunnel-reminder': 'any-value' 
+            "ngrok-skip-browser-warning": "anyValue",
           },
         });
 
@@ -381,7 +385,7 @@ displayBookMetadata() {
         const response = await fetch(`${this.$link_backend}/books/img?${params.toString()}`, {
           method: "GET",
           headers: {
-            'bypass-tunnel-reminder': 'any-value' ,
+            "ngrok-skip-browser-warning": "anyValue",
             "Authorization": "Bearer " + localStorage.getItem("authToken"),
           },
         });
@@ -523,14 +527,16 @@ displayBookMetadata() {
         const response = await fetch(`${this.$link_backend}/author/substr?${params.toString()}`, {
           method: "GET",
           headers: {
-            'bypass-tunnel-reminder': 'any-value' 
+            "ngrok-skip-browser-warning": "anyValue",
           },
         });
 
         if (response.ok) {
           const data = await response.json();
 
-          this.name = data;
+          this.authorsForSerching = data;
+
+          this.name = data.name;
           this.surname = data.surname;
 
           toastRef.message = `Successful#"`;

@@ -11,7 +11,7 @@
         <img :src="downloadedImageUrls[index]" alt="Book Cover" class="book-cover" />
         <div class="book-info">
           <h3>{{ book.title }}</h3>
-          <p><strong>Description:</strong> {{ book.description }}</p>
+          
           <p><strong>Year of Publication:</strong> {{ book.year_of_pub }}</p>
           <p><strong>Publisher:</strong> {{ book.publisher }}</p>
         </div>
@@ -61,7 +61,7 @@ export default {
     async downloadImagesAndMetadata() {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
-      params.append("page", 1);
+      params.append("page", 2);
       params.append("page_size", 10);
 
       try {
@@ -79,10 +79,10 @@ export default {
           // Store the fetched books
           this.books = data.map(book => ({
             title: book.title,
+            publisher: book.publisher,
+            year_of_pub: book.year_of_pub,
             description: book.description || "No description available.",
             genres: book.genres || [],
-            author: book.author || "Unknown Author",
-            published_date: book.published_date || "Unknown Date",
           }));
 
           // Fetch images for each book

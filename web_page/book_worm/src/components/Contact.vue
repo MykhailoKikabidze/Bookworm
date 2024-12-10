@@ -3,7 +3,7 @@
     <h1>EPUB File Viewer</h1>
 
     <!-- Download Button -->
-    <button @click="downloadBookFile('Game')">
+    <button @click="downloadBookFile('Coraline')">
       Download EPUB
     </button>
 
@@ -14,8 +14,8 @@
     <div ref="viewer" style="width: 100%; height: 600px; overflow: auto;"></div>
 
     <!-- Navigation Buttons -->
-    <button @click="goToPreviousPage" :disabled="currentPage === 0">Previous Page</button>
-    <button @click="goToNextPage" :disabled="currentPage === totalPages - 1">Next Page</button>
+    <button @click="goToPreviousPage" :disabled="currentPage === 0" aria-label="Previous Page">Previous Page</button>
+    <button @click="goToNextPage" :disabled="currentPage === totalPages - 1" aria-label="Next Page">Next Page</button>
 
     <!-- Display All Pages Button -->
     <button @click="displayAllPages()">Display All Pages</button>
@@ -66,6 +66,10 @@ export default {
 
     // Load EPUB book into the viewer
     loadEpub(arrayBuffer) {
+      this.isLoading = true;
+      this.errorMessage = "";
+      this.message = "";
+
       this.book = ePub(arrayBuffer);
 
       // Wait for the book to be fully loaded before rendering
@@ -92,6 +96,10 @@ export default {
 
         // Extract the first word of the first chapter
         this.extractFirstWord();
+        this.isLoading = false;
+      }).catch((err) => {
+        this.isLoading = false;
+        this.errorMessage = `Error loading EPUB: ${err.message}`;
       });
     },
 
@@ -225,22 +233,20 @@ button:hover {
 
 .loading-message {
   color: #555;
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 .error-message {
-  color: red;
+  color: #f44336;
   margin-top: 10px;
 }
 
 .message {
-  color: #333;
+  color: #4caf50;
   margin-top: 10px;
 }
 
 .first-word-message {
-  color: #2c6bc2;
-  font-size: 18px;
   font-weight: bold;
   margin-top: 20px;
 }

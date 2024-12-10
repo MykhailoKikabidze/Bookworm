@@ -15,6 +15,7 @@ import SettingsPage from '../components/SettingsPage.vue'; // Import SettingsPag
 import AddBooks from '../components/Add.vue'; // Import AddBooks component
 import AddAuthor from '../components/AddAuthor.vue'; // Import AddAuthor component
 import Add from '../components/Add.vue'; // Importuj komponent Add.vue
+import BookDetailsPage from '../components/BookDetailsPage.vue'; // Import BookDetailsPage component
 
 const routes = [
   { path: '/', name: 'Home', component: FirstPage },
@@ -32,6 +33,13 @@ const routes = [
   { path: '/add-author', name: 'AddAuthor', component: AddAuthor },
   { path: '/add', name: 'Add', component: AddBooks }, // Route for AddBooks page
   { path: '/add', name: 'Add', component: Add }, // Definicja trasy dla Add.vue
+  {
+    path: '/book-details/:title',
+    name: 'BookDetails',
+    component: BookDetailsPage,
+  },
+  
+  
 ];
 
 const router = createRouter({

@@ -28,14 +28,14 @@
 
 
 
-    <button @click="getGenres('Garlic & the Vampire')">get genres</button>
+    <button @click="getGenres('Coraline')">get genres</button>
     <ul v-if="genres && genres.length">
   <li v-for="(genre, index) in genres" :key="index">{{ genre }}</li>
 </ul>
 <p v-else>No genres available.</p>
 
 
-<button @click="getThemes('BOOK')">get themes</button>
+<button @click="getThemes('Coraline')">get themes</button>
     <ul v-if="themes && themes.length">
   <li v-for="(genre, index) in themes" :key="index">{{ genre }}</li>
 </ul>
@@ -296,7 +296,7 @@ displayBookMetadata() {
     async downloadImages() {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
-      params.append("page", 2);
+      params.append("page", 1);
       params.append("page_size", 10);
 
       try {

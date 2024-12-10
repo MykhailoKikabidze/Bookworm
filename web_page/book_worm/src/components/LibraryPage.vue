@@ -7,16 +7,20 @@
 
     <!-- Book List -->
     <div class="book-list" v-if="displayMetadata">
-      <div v-for="(book, index) in books" :key="index" class="book-item">
-        <img :src="downloadedImageUrls[index]" alt="Book Cover" class="book-cover" />
-        <div class="book-info">
-          <h3>{{ book.title }}</h3>
-          
-          <p><strong>Year of Publication:</strong> {{ book.year_of_pub }}</p>
-          <p><strong>Publisher:</strong> {{ book.publisher }}</p>
-        </div>
-      </div>
+  <div
+    v-for="(book, index) in books"
+    :key="index"
+    class="book-item"
+    @click="viewBookDetails(book, downloadedImageUrls[index])"
+  >
+    <img :src="downloadedImageUrls[index]" alt="Book Cover" class="book-cover" />
+    <div class="book-info">
+      <h3>{{ book.title }}</h3>
+      <p><strong>Year of Publication:</strong> {{ book.year_of_pub }}</p>
+      <p><strong>Publisher:</strong> {{ book.publisher }}</p>
     </div>
+  </div>
+</div>
 
     <Toast ref="toastRef" />
   </div>
@@ -51,6 +55,13 @@ export default {
     this.displayBookMetadata();
   },
   methods: {
+    viewBookDetails(book) {
+    this.$router.push({
+      name: 'BookDetails',
+      params: { title: book.title },
+      query: { imageUrl: this.downloadedImageUrls[this.books.indexOf(book)] } // Pass the image URL as a query
+    });
+  },
     async displayBookMetadata() {
       if (this.books.length === 0) {
         this.downloadImagesAndMetadata();
@@ -61,7 +72,7 @@ export default {
     async downloadImagesAndMetadata() {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
-      params.append("page", 2);
+      params.append("page", 1);
       params.append("page_size", 10);
 
       try {

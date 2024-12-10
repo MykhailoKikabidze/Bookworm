@@ -72,7 +72,7 @@ export default {
       message: "",            // Message for feedback
       firstWord: "",          // To store the first word of the first chapter
       rendition: null,        // The EPUB rendition for rendering
-      currentPage: 0,         // Current page index
+      currentPage: 1,         // Current page index
       totalPages: 0,          // Total pages in the EPUB
       spineItems: [],         // Store the spine items for navigation
       bookUrl: null,   

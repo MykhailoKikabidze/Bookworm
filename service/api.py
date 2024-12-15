@@ -30,6 +30,7 @@ from books.crud import (
     get_genres_of_book,
     get_themes_of_book,
     add_author,
+    delete_book,
 )
 import uvicorn
 import asyncio
@@ -218,9 +219,9 @@ async def delete_user(
 @app.post("/books/", tags=["moderation"], response_model=dict)
 async def add_book_full(
     book_sch: BookScheme = Depends(),
-    authors: list[str] = Form(...),
-    themes: list[str] = Form(...),
-    genres: list[str] = Form(...),
+    authors: str = Form(...),
+    themes: str = Form(...),
+    genres: str = Form(...),
     file_img_book: UploadFile = File(...),
     file_book: UploadFile = File(...),
     curr_user: models.UsersModel = Depends(get_current_user),
@@ -231,6 +232,10 @@ async def add_book_full(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User is not a moderator",
         )
+
+    authors = authors.split(",")
+    themes = themes.split(",")
+    genres = genres.split(",")
 
     try:
         file_image_content = await file_img_book.read()
@@ -413,6 +418,28 @@ async def add_authors(
         )
 
     res = await add_author(db, name, surname)
+    if res:
+        return {"status": 200}
+
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="This author already exists",
+    )
+
+
+@app.delete("/books", tags=["moderation"], response_model=dict)
+async def remove_book(
+    title: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    if not curr_user.is_moder:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is not a moderator",
+        )
+
+    res = await delete_book(db, title)
     if res:
         return {"status": 200}
 

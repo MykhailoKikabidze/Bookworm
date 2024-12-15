@@ -18,6 +18,7 @@ from fastapi.responses import StreamingResponse
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from auth.crud import get_user, authenticate_user, authorize_user
+from notes.schemas import NoteSchema
 from setting.crud import change_username, change_password, delete_account
 from auth import schemas, models
 from books.schemas import BookScheme, AuthorScheme
@@ -31,6 +32,14 @@ from books.crud import (
     get_themes_of_book,
     add_author,
     delete_book,
+)
+from notes.crud import (
+    new_checkpoint,
+    show_checkpoint,
+    add_note,
+    update_note,
+    delete_note,
+    show_notes,
 )
 import uvicorn
 import asyncio
@@ -447,3 +456,51 @@ async def remove_book(
         status_code=status.HTTP_409_CONFLICT,
         detail="This author already exists",
     )
+
+
+@app.post("/checkpoints", tags=["notes"], response_model=dict)
+async def add_checkpoint(
+    title: str,
+    page: int,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    book = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
+        )
+    res = await new_checkpoint(db, book, curr_user, page)
+    if res:
+        return {"status": 200}
+    return {"status": 400}
+
+
+@app.get("/checkpoints", tags=["notes"], response_model=int)
+async def get_checkpoint(
+    title: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    book = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
+        )
+    res = await show_checkpoint(db, book, curr_user)
+    return res
+
+
+@app.get("/notes", tags=["notes"], response_model=list[NoteSchema])
+async def get_notes(
+    title: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    book = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
+        )
+    res = await show_notes(db, book, curr_user)
+    return res

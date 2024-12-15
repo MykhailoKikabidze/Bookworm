@@ -1,7 +1,6 @@
-from httpx import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from books.models import *
-from books.schemas import BookScheme, AuthorScheme
+from books.schemas import BookScheme
 from sqlalchemy import select, or_, func, and_
 
 

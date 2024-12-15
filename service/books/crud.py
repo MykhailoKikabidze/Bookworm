@@ -1,3 +1,4 @@
+from httpx import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from books.models import *
 from books.schemas import BookScheme, AuthorScheme
@@ -21,7 +22,7 @@ async def search_book(db: AsyncSession, book_scheme: BookScheme) -> BookModel:
 async def search_author(db: AsyncSession, name: str, surname: str) -> AuthorModel:
     result = await db.execute(
         select(AuthorModel).filter(
-            AuthorModel.name == name and AuthorModel.surname == surname
+            and_(AuthorModel.name == name, AuthorModel.surname == surname)
         )
     )
 
@@ -42,6 +43,7 @@ async def search_genre(db: AsyncSession, name: str) -> GenreModel:
 
 async def add_book_authors(db: AsyncSession, book_sch: BookScheme, authors: list[str]):
     book = await search_book(db, book_sch)
+    book = await db.merge(book)
 
     for author in authors:
         author_lst = author.split(" ")
@@ -50,39 +52,38 @@ async def add_book_authors(db: AsyncSession, book_sch: BookScheme, authors: list
         author_book = await search_author(db, author_lst[0], author_lst[1])
         if not author_book:
             continue
-        async with db as session:
-            book_author = BookAuthorModel(id_book=book.id, id_author=author_book.id)
-            session.add(book_author)
-            await session.commit()
-            await session.refresh(book_author)
+        book_author = BookAuthorModel(id_book=book.id, id_author=author_book.id)
+        db.add(book_author)
+
+    await db.commit()
 
 
 async def add_book_themes(db: AsyncSession, book_sch: BookScheme, themes: list[str]):
     book = await search_book(db, book_sch)
+    book = await db.merge(book)
 
     for theme in themes:
         theme_book = await search_theme(db, theme)
         if not theme_book:
             continue
-        async with db as session:
-            book_theme = BookThemeModel(id_book=book.id, id_theme=theme_book.id)
-            session.add(book_theme)
-            await session.commit()
-            await session.refresh(book_theme)
+        book_theme = BookThemeModel(id_book=book.id, id_theme=theme_book.id)
+        db.add(book_theme)
+
+    await db.commit()
 
 
 async def add_book_genres(db: AsyncSession, book_sch: BookScheme, genres: list[str]):
     book = await search_book(db, book_sch)
+    book = await db.merge(book)
 
     for genre in genres:
         genre_book = await search_genre(db, genre)
         if not genre_book:
             continue
-        async with db as session:
-            book_genre = BookGenreModel(id_book=book.id, id_genre=genre_book.id)
-            session.add(book_genre)
-            await session.commit()
-            await session.refresh(book_genre)
+        book_genre = BookGenreModel(id_book=book.id, id_genre=genre_book.id)
+        db.add(book_genre)
+
+    await db.commit()
 
 
 async def add_book(
@@ -123,8 +124,7 @@ async def get_books_paginated(db: AsyncSession, page: int = 1, page_size: int = 
 
     offset = (page - 1) * page_size
 
-    async with db as session:
-        query = await session.execute(select(BookModel).offset(offset).limit(page_size))
+    query = await db.execute(select(BookModel).offset(offset).limit(page_size))
 
     books = query.scalars().all()
 
@@ -133,15 +133,14 @@ async def get_books_paginated(db: AsyncSession, page: int = 1, page_size: int = 
 
 async def get_authors_substr(db: AsyncSession, substr: str) -> list[AuthorModel]:
 
-    async with db as session:
-        authors = await session.execute(
-            select(AuthorModel).where(
-                or_(
-                    func.lower(AuthorModel.name).like(f"%{substr}%"),
-                    func.lower(AuthorModel.surname).like(f"%{substr}%"),
-                )
+    authors = await db.execute(
+        select(AuthorModel).where(
+            or_(
+                func.lower(AuthorModel.name).like(f"%{substr}%"),
+                func.lower(AuthorModel.surname).like(f"%{substr}%"),
             )
         )
+    )
 
     return authors.scalars().all()
 
@@ -212,3 +211,16 @@ async def add_author(db: AsyncSession, name: str, surname: str) -> bool:
         await session.refresh(author)
 
         return True
+
+
+async def delete_book(db: AsyncSession, title: str) -> bool:
+
+    book = await search_book_by_title(db, title)
+
+    if not book:
+        return False
+
+    await db.delete(book)
+    await db.commit()
+
+    return True

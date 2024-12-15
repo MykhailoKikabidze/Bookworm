@@ -24,6 +24,12 @@ class BookModel(Base):
     genres = relationship(
         "GenreModel", secondary="books_genres", back_populates="books"
     )
+    users_checkpoints = relationship(
+        "UsersModel", secondary="checkpoints", back_populates="books_checkpoints"
+    )
+    users_notes = relationship(
+        "UsersModel", secondary="notes", back_populates="books_notes"
+    )
 
 
 class ThemeModel(Base):

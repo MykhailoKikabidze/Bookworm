@@ -504,3 +504,23 @@ async def get_notes(
         )
     res = await show_notes(db, book, curr_user)
     return res
+
+
+@app.post("/notes", tags=["notes"], response_model=dict)
+async def create_note(
+    title: str,
+    page: int,
+    description: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    book = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
+        )
+
+    await add_note(db, book, curr_user, page, description)
+
+    return {"status": 200}
+

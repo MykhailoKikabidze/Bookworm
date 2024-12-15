@@ -76,9 +76,14 @@ async def search_note(
 
 async def add_note(
     db: AsyncSession, book: BookModel, user: UsersModel, page: int, description: str
-) -> None:
+) -> bool:
     await db.merge(book)
     await db.merge(user)
+
+    note = await search_note(db, book, user, page, description)
+
+    if note:
+        return False
 
     note = NoteModel(
         id_user=user.id, id_book=book.id, page=page, description=description
@@ -86,6 +91,8 @@ async def add_note(
 
     db.add(note)
     await db.commit()
+
+    return True
 
 
 async def update_note(
@@ -105,6 +112,8 @@ async def update_note(
 
     db.add(note)
     await db.commit()
+
+    return True
 
 
 async def delete_note(

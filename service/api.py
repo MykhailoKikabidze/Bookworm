@@ -520,7 +520,12 @@ async def create_note(
             status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
         )
 
-    await add_note(db, book, curr_user, page, description)
+    res = await add_note(db, book, curr_user, page, description)
+
+    if not res:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Note already exists"
+        )
 
     return {"status": 200}
 

@@ -552,7 +552,7 @@ async def change_note(
 
 @app.delete("/notes", tags=["notes"], response_model=dict)
 async def remove_note(
-title: str,
+    title: str,
     page: int,
     description: str,
     db: AsyncSession = Depends(get_db_session),

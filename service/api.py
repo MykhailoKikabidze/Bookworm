@@ -548,3 +548,27 @@ async def change_note(
         )
 
     return {"status": 200}
+
+
+@app.delete("/notes", tags=["notes"], response_model=dict)
+async def remove_note(
+title: str,
+    page: int,
+    description: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    book = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
+        )
+
+    res = await delete_note(db, book, curr_user, page, description)
+
+    if not res:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Note is not found"
+        )
+
+    return {"status": 200}

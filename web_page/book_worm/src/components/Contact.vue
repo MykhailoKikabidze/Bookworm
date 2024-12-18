@@ -1,253 +1,254 @@
 <template>
-  <div class="epub-page">
-    <h1>EPUB File Viewer</h1>
+  <div class="ebook-reader">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="logo">📖 CozyBook Reader</h1>
+      <div class="file-upload">
+        <input type="file" @change="onFileChange" class="file-input" />
+      </div>
+    </header>
 
-    <!-- Download Button -->
-    <button @click="downloadBookFile('Coraline')">
-      Download EPUB
-    </button>
+    <!-- Main Content -->
+    <div class="content">
+      <!-- EPUB Viewer -->
+      <div ref="viewer" class="epub-viewer"></div>
+    </div>
 
-    <!-- File input for EPUB -->
-    <input type="file" @change="onFileChange" />
-
-    <!-- Div container for rendering the EPUB -->
-    <div ref="viewer" style="width: 100%; height: 600px; overflow: auto;"></div>
-
-    <!-- Navigation Buttons -->
-    <button @click="goToPreviousPage" :disabled="currentPage === 0" aria-label="Previous Page">Previous Page</button>
-    <button @click="goToNextPage" :disabled="currentPage === totalPages - 1" aria-label="Next Page">Next Page</button>
-
-    <!-- Display All Pages Button -->
-    <button @click="displayAllPages()">Display All Pages</button>
-
-    <!-- Loading and Error Display -->
-    <p v-if="isLoading" class="loading-message">Loading content...</p>
-    <p v-if="errorMessage" class="error-message">Error: {{ errorMessage }}</p>
-    <p v-if="message" class="message">{{ message }}</p>
-    <p v-if="firstWord" class="first-word-message">First word: {{ firstWord }}</p>
+    <!-- Footer Navigation -->
+    <footer class="footer">
+      <button @click="goBack" class="nav-button back-button">🔙 Go Back</button>
+      <button @click="goToPreviousPage" :disabled="currentPage === 1" class="nav-button">⬅ Prev</button>
+      <p class="page-info">Page {{ currentPage }} of {{ totalPages }}</p>
+      <button @click="goToNextPage" :disabled="currentPage === totalPages" class="nav-button">Next ➡</button>
+    </footer>
   </div>
 </template>
 
 <script>
-import ePub from "epubjs"; // Importing the epub.js library
+import ePub from "epubjs";
 
 export default {
   data() {
     return {
-      isLoading: false,       // To track if content is loading
-      errorMessage: "",       // To store error messages
-      message: "",            // Message for feedback
-      firstWord: "",          // To store the first word of the first chapter
-      book: null,             // The loaded EPUB book
-      rendition: null,        // The EPUB rendition for rendering
-      currentPage: 0,         // Current page index
-      totalPages: 0,          // Total pages in the EPUB
-      spineItems: [],         // Store the spine items for navigation
-      bookUrl: null,          // URL of the EPUB file
+      book: null,
+      rendition: null,
+      currentPage: 1, // Default to the first page
+      totalPages: 0, // Total number of pages
+      isLoading: false,
+      errorMessage: "",
     };
   },
   methods: {
-    // Handle file change event when a file is selected
+    // Handle EPUB file upload
     onFileChange(event) {
       const file = event.target.files[0];
       if (file && file.type === "application/epub+zip") {
         const reader = new FileReader();
-
         reader.onload = (e) => {
           const arrayBuffer = e.target.result;
           this.loadEpub(arrayBuffer);
         };
-
         reader.readAsArrayBuffer(file);
       } else {
-        alert("Please select a valid EPUB file.");
+        alert("Please upload a valid EPUB file.");
       }
     },
 
-    // Load EPUB book into the viewer
+    // Load the EPUB book
     loadEpub(arrayBuffer) {
       this.isLoading = true;
-      this.errorMessage = "";
-      this.message = "";
-
       this.book = ePub(arrayBuffer);
 
-      // Wait for the book to be fully loaded before rendering
-      this.book.ready.then(() => {
-        console.log("EPUB loaded successfully");
+      this.book.ready
+        .then(() => {
+          // Render the book in the viewer
+          this.rendition = this.book.renderTo(this.$refs.viewer, {
+            width: "100%",
+            height: "100%",
+            flow: "scrolled", // Use scrolled view for continuous reading
+          });
 
-        // Render the book to the div container
-        this.rendition = this.book.renderTo(this.$refs.viewer, {
-          width: "100%",
-          height: "100%",
-          flow: "scrolled", // Continuous scrolling layout
+          // Listen for location changes to update current page
+          this.rendition.on("relocated", (location) => {
+            this.updatePageCount(location);
+          });
+
+          // Display the first page
+          this.rendition.display().then(() => {
+            this.calculateTotalPages();
+          });
+
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          this.errorMessage = `Error loading EPUB: ${err.message}`;
+          this.isLoading = false;
         });
+    },
 
-        // Set up the spine (collection of pages)
-        this.spineItems = this.book.spine.items;
-        this.totalPages = this.spineItems.length;
-        console.log(`Total pages in the EPUB: ${this.totalPages}`);
+    // Update the current page based on the EPUB location
+    updatePageCount(location) {
+      const currentLocation = this.rendition.locations;
+      const position = currentLocation.percentageFromTop(location.start);
 
-        // Initialize the current page index and display the first page
-        if (this.totalPages > 0) {
-          this.currentPage = 0;
-          this.navigateToPage(this.currentPage);
-        }
+      // Calculate the current page based on scroll position
+      const currentPageNumber = Math.floor(position * currentLocation.total);
 
-        // Extract the first word of the first chapter
-        this.extractFirstWord();
-        this.isLoading = false;
-      }).catch((err) => {
-        this.isLoading = false;
-        this.errorMessage = `Error loading EPUB: ${err.message}`;
+      // Update the page number
+      this.currentPage = currentPageNumber + 1;
+    },
+
+    // Calculate total pages
+    calculateTotalPages() {
+      this.rendition.locations.generate().then(() => {
+        this.totalPages = this.rendition.locations.total;
       });
     },
 
-    // Navigate to a specific page
-    navigateToPage(index) {
-      const spineItem = this.spineItems[index];
-
-      // Ensure we are navigating to a valid page
-      if (spineItem) {
-        console.log(`Rendering page: ${spineItem.id}`);
-        this.rendition.display(spineItem.href).then(() => {
-          this.currentPage = index;
-        }).catch((err) => {
-          console.error("Error displaying the page:", err);
-        });
-      } else {
-        console.error(`Page not found in the spine: ${index}`);
-      }
-    },
-
-    // Go to the previous page
+    // Navigate to the previous page
     goToPreviousPage() {
-      if (this.currentPage > 0) {
-        this.navigateToPage(this.currentPage - 1);
-      }
+      this.currentPage--;
+      this.rendition.prev();
     },
 
-    // Go to the next page
+    // Navigate to the next page
     goToNextPage() {
-      if (this.currentPage < this.totalPages - 1) {
-        this.navigateToPage(this.currentPage + 1);
-      }
+      this.currentPage++;
+      this.rendition.next();
     },
 
-    // Display all pages (for debugging purposes)
-    displayAllPages() {
-      for (let i = 0; i < this.totalPages; i++) {
-        this.navigateToPage(i);
-      }
+    // Go back to the upload screen
+    goBack() {
+      this.book = null;
+      this.currentPage = 1;
+      this.totalPages = 0;
+      this.rendition = null;
     },
-
-    // Function to download the EPUB file
-    async downloadBookFile(title) {
-      try {
-        this.errorMessage = ""; // Reset error message
-        this.message = "Fetching EPUB file for download..."; // Initial message
-
-        const response = await fetch(
-          `${this.$link_backend}/books/file?title=${title}`,
-          {
-            method: "GET",
-            headers: {
-              "ngrok-skip-browser-warning": "anyValue", // Example custom header
-            },
-          }
-        );
-
-        if (response.ok) {
-          const blob = await response.blob();
-          this.bookUrl = URL.createObjectURL(blob); // Store the URL for the EPUB file
-
-          // Trigger the download
-          const link = document.createElement("a");
-          link.href = this.bookUrl;
-          link.download = `${title}.epub`;
-          link.click();
-
-          this.message = "EPUB file downloaded successfully.";
-
-          // Load and display the downloaded EPUB file immediately after downloading
-          this.loadEpub(blob);
-        } else {
-          const errorData = await response.json();
-          this.errorMessage =
-            errorData.detail || "Failed to download the EPUB file.";
-        }
-      } catch (error) {
-        this.errorMessage = `An error occurred while downloading: ${error.message}`;
-      }
-    },
-
-    // Extract the first word from the first chapter
-    async extractFirstWord() {
-      try {
-        const spine = await this.book.loaded.spine;
-        const firstItem = spine.items[0];
-        const firstText = await firstItem.load(this.book.load.bind(this.book));
-        const content = new DOMParser().parseFromString(firstText, "text/html");
-        this.firstWord = content.body.textContent.split(/\s+/)[0];
-      } catch (error) {
-        this.errorMessage = `An error occurred while extracting the first word: ${error.message}`;
-      }
-    },
-  },
-
-  beforeDestroy() {
-    // Clean up resources when the component is destroyed
-    if (this.rendition) {
-      this.rendition.destroy();
-    }
-    if (this.book) {
-      this.book.destroy();
-    }
-    if (this.bookUrl) {
-      URL.revokeObjectURL(this.bookUrl);
-    }
   },
 };
 </script>
 
 <style scoped>
-.epub-page {
-  padding: 20px;
-  font-family: Arial, sans-serif;
+/* General Reset */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background-color: #f4f4f9;
+  color: #333;
 }
 
-button {
-  margin: 10px 0;
-  padding: 10px 20px;
-  font-size: 16px;
+/* Ebook Reader Layout */
+.ebook-reader {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  justify-content: space-between;
+}
+
+/* Header */
+.header {
+  background-color: #5c4033;
+  color: white;
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.file-upload {
+  margin-left: auto;
+}
+
+.file-input {
+  background-color: #fff;
+  border: 1px solid #5c4033;
+  padding: 8px;
+  border-radius: 5px;
   cursor: pointer;
-  background-color: #4caf50;
+  transition: border-color 0.3s;
+}
+
+.file-input:hover {
+  border-color: #a0522d;
+}
+
+/* Main Content */
+.content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.epub-viewer {
+  width: 100%; /* Full width without frame */
+  height: 100%;
+  background-color: #fff;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Footer */
+.footer {
+  background-color: #5c4033;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 30px;
+}
+
+.nav-button {
+  background-color: #8b4513;
   color: white;
   border: none;
-  border-radius: 4px;
+  padding: 12px 20px;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
-button:hover {
-  background-color: #45a049;
+.nav-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
-.loading-message {
-  color: #555;
-  margin-top: 10px;
+.nav-button:hover:not(:disabled) {
+  background-color: #a0522d;
 }
 
-.error-message {
-  color: #f44336;
-  margin-top: 10px;
+/* Page Info */
+.page-info {
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
+  color: #fff;
 }
 
-.message {
-  color: #4caf50;
-  margin-top: 10px;
-}
-
-.first-word-message {
+/* Back Button */
+.back-button {
+  background-color: #a0522d;
   font-weight: bold;
-  margin-top: 20px;
+}
+
+/* Loading/Error Messages */
+.error-message {
+  color: red;
+  text-align: center;
+  margin: 10px 0;
 }
 </style>

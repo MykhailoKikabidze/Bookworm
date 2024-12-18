@@ -1,5 +1,6 @@
 <template>
-  <div class="library-container">
+  <div id="app">
+    <div class="library-container">
     <div class="book-details-container">
       <div v-if="book">
         <h1 class="book-title">{{ book.title }}</h1>
@@ -7,9 +8,9 @@
         <p><strong>Description:</strong> {{ book.description || "No description available." }}</p>
         <p><strong>Year of Publication:</strong> {{ book.year_of_pub || "Unknown" }}</p>
         <p><strong>Publisher:</strong> {{ book.publisher || "Unknown" }}</p>
-        <p><strong>Authors:</strong> {{ book.authors.join(", ") || "No authors available." }}</p>
+        <!-- <p><strong>Authors:</strong> {{ book.authors.join(", ") || "No authors available." }}</p>
         <p><strong>Genres:</strong> {{ book.genres.join(", ") || "No genres available." }}</p>
-        <p><strong>Themes:</strong> {{ themes.join(", ") || "No themes available." }}</p>
+        <p><strong>Themes:</strong> {{ themes.join(", ") || "No themes available." }}</p> -->
 
         
 
@@ -23,38 +24,56 @@
         <p>Loading book details...</p>
       </div>
     </div>
-    
-    <div class="epub-page">
-    <h1>EPUB File Viewer</h1>
+  </div>
 
-    <!-- Download Button -->
-    <button @click="downloadBookFile('Coraline')" class="download-button">
-      Download EPUB
-    </button>
+  
+  <header class="header">
+      <h1>EPUB Reader</h1>
+      <button @click="downloadBookFile('Coraline')">Download EPUB</button>
+    </header>
 
-    <!-- File input for EPUB -->
-    <input type="file" @change="onFileChange" class="file-input" />
 
-    <!-- Div container for rendering the EPUB -->
-    <div ref="viewer" class="epub-viewer"></div>
 
-    <!-- Navigation Buttons -->
-    <div class="nav-buttons">
-      <button @click="goToPreviousPage" :disabled="currentPage === 0" class="nav-button">
-        Previous Page
-      </button>
-      <button @click="goToNextPage" :disabled="currentPage === totalPages - 1" class="nav-button">
-        Next Page
-      </button>
+    <!-- Main Content -->
+    <div class="main-container">
+      <!-- Fixed Frame Reader -->
+      <div class="reader-frame">
+        <div class="viewer" ref="viewer"></div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="footer-toolbar">
+        <button @click="goPrevious" :disabled="currentPage <= 1">Previous</button>
+        <span>Page {{ currentPage }} of {{ totalPages }}</span>
+        <button @click="goNext" :disabled="currentPage >= totalPages">Next</button>
+        <button @click="highlightSelection" :disabled="!book">Add Highlight</button>
+        <input type="color" v-model="selectedColor" title="Choose Highlight Color" />
+      </div>
+
+      <!-- Bookmarks Section -->
+      <div class="bookmarks" v-if="bookmarks.length">
+        <h3>Bookmarks</h3>
+        <ul>
+          <li
+            v-for="(bookmark, index) in bookmarks"
+            :key="index"
+            @click="goToBookmark(bookmark.cfi)"
+            class="bookmark-item"
+          >
+            <span>Page {{ bookmark.page }}: </span>
+            <span
+              class="highlighted-text"
+              :style="{ backgroundColor: bookmark.color }"
+            >
+              {{ bookmark.text }}
+            </span>
+          </li>
+        </ul>
+      </div>
     </div>
+  </div>
 
-    <!-- Loading and Error Display -->
-    <p v-if="isLoading" class="loading-message">Loading content...</p>
-    <p v-if="errorMessage" class="error-message">Error: {{ errorMessage }}</p>
-    <p v-if="message" class="message">{{ message }}</p>
-    <p v-if="firstWord" class="first-word-message">First word: {{ firstWord }}</p>
-  </div>
-  </div>
+
 </template>
 
 
@@ -63,120 +82,114 @@ import ePub from "epubjs"; // Importing the epub.js library
 export default {
   data() {
     return {
-      book: null,
+      book: null, // EPUB.js book instance
+      rendition: null, // EPUB.js rendition instance
+      currentPage: 1, // Current page number
+      totalPages: 0, // Total pages
+      bookmarks: [], // List of bookmarks {page, text, cfi, color}
+      selectedColor: "#ffd966", // Default highlight color
+      isLoading: false,
+      errorMessage: "",
       themes: [],  // Stores the book themes
       downloadedImageUrls: [],  // Stores the URLs of downloaded images
       displayImages: false,
-      isLoading: false,       // To track if content is loading
-      errorMessage: "",       // To store error messages
       message: "",            // Message for feedback
       firstWord: "",          // To store the first word of the first chapter
-      rendition: null,        // The EPUB rendition for rendering
-      currentPage: 1,         // Current page index
-      totalPages: 0,          // Total pages in the EPUB
       spineItems: [],         // Store the spine items for navigation
       bookUrl: null,   
     };
   },
   methods: {
-    // Handle file change event when a file is selected
-    onFileChange(event) {
-      const file = event.target.files[0];
-      if (file && file.type === "application/epub+zip") {
-        const reader = new FileReader();
+   
+ 
+    loadEpub(blob) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const arrayBuffer = e.target.result;
+        this.book = ePub(arrayBuffer);
 
-        reader.onload = (e) => {
-          const arrayBuffer = e.target.result;
-          this.loadEpub(arrayBuffer);
-        };
-
-        reader.readAsArrayBuffer(file);
-      } else {
-        alert("Please select a valid EPUB file.");
-      }
-    },
-
-
-    // Load EPUB book into the viewer
-    loadEpub(arrayBuffer) {
-      this.isLoading = true;
-      this.errorMessage = "";
-      this.message = "";
-
-      this.book = ePub(arrayBuffer);
-
-      this.book.ready.then(() => {
-        console.log("EPUB loaded successfully");
-
-        this.rendition = this.book.renderTo(this.$refs.viewer, {
+        // Render book into fixed frame
+        const viewer = this.$refs.viewer;
+        this.rendition = this.book.renderTo(viewer, {
           width: "100%",
           height: "100%",
-          flow: "scrolled", // Continuous scrolling layout
+        });
+        this.rendition.display();
+
+        // Calculate total pages and handle location changes
+        this.book.ready.then(() => {
+          // Generate locations for the book with a large number of steps (1000)
+          this.book.locations.generate(1000).then(() => {
+            // Ensure totalPages is set only after the locations are ready
+            this.totalPages = this.book.locations.length();
+            console.log(`Total Pages: ${this.totalPages}`); // Debugging line to verify total pages
+          }).catch((error) => {
+            console.error("Error generating locations:", error);
+          });
+        }).catch((error) => {
+          console.error("Error initializing book:", error);
         });
 
-        this.spineItems = this.book.spine.items;
-        this.totalPages = this.spineItems.length;
-        console.log(`Total pages in the EPUB: ${this.totalPages}`);
+        this.rendition.on("relocated", (location) => {
+          this.currentPage = this.book.locations.locationFromCfi(location.start.cfi);
+        });
+      };
 
-        if (this.totalPages > 0) {
-          this.currentPage = 0;
-          this.navigateToPage(this.currentPage);
-        }
-
-        this.extractFirstWord();
-        this.isLoading = false;
-      }).catch((err) => {
-        this.isLoading = false;
-        this.errorMessage = `Error loading EPUB: ${err.message}`;
-      });
+      reader.readAsArrayBuffer(blob);
+    }
+,
+    goPrevious() {
+      if (this.rendition) this.rendition.prev();
+    },
+    goNext() {
+      console.log("Blat");
+      if (this.rendition) this.rendition.next();
     },
 
+    // Method to highlight the selected text where you read
+    highlightSelection() {
+      const iframe = this.$refs.viewer.querySelector("iframe");
+      const iframeWindow = iframe.contentWindow;
+      const selection = iframeWindow.getSelection();
+      const selectedText = selection.toString().trim();
 
-   // Updated navigateToPage method
-navigateToPage(index) {
-  const spineItem = this.spineItems[index];
-  if (spineItem) {
-    console.log(`Navigating to page: ${index}, href: ${spineItem.href}`);
-    this.rendition.display(spineItem.href)
-      .then(() => {
-        this.currentPage = index; // Update the current page index
-        console.log(`Successfully displayed page: ${index}`);
-      })
-      .catch((err) => {
-        console.error("Error displaying the page:", err);
-      });
-  } else {
-    console.error(`Invalid spine item index: ${index}`);
-  }
-},
+      if (selectedText) {
+        // Get the CFI (location identifier for the selection)
+        const cfi = this.rendition.currentLocation().start.cfi;
 
+        // Ensure the selected color is a valid string
+        const color = this.selectedColor || "#FFD700"; // Default to gold if no color is selected
 
-   // Go to the previous page
-goToPreviousPage() {
-  if (this.currentPage > 0) {
-    console.log("Navigating to previous page. Current page:", this.currentPage);
-    this.navigateToPage(this.currentPage - 1);
-  } else {
-    console.warn("Already on the first page. Cannot go back further.");
-  }
-},
+        // Store the bookmark with the CFI, selected text, and color
+        this.bookmarks.push({
+          page: this.currentPage,
+          text: selectedText,
+          cfi,
+          color,
+        });
 
-// Go to the next page
-goToNextPage() {
-  if (this.currentPage < this.totalPages - 1) {
-    this.navigateToPage(this.currentPage + 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to the top
-  }
-},
+        // Use annotations.add to highlight the selected text in the exact location
+        this.rendition.annotations.add("highlight", cfi, {
+          fill: color,        // Set the color of the highlight
+          "fill-opacity": 0.5 // Set the opacity of the highlight color
+        });
 
-
-    // Display all pages (for debugging purposes)
-    displayAllPages() {
-      for (let i = 0; i < this.totalPages; i++) {
-        this.navigateToPage(i);
+        alert(`Highlighted: "${selectedText}" on Page ${this.currentPage}`);
+      } else {
+        alert("Please select text to highlight.");
       }
     },
 
+    goToBookmark(cfi) {
+      // Navigate to the CFI location in the book
+      this.rendition.display(cfi);
+
+      // Optionally, you can also highlight the text again when you navigate to it
+      this.rendition.annotations.add("highlight", cfi, {
+        fill: "#FFD700",        // Default highlight color (can be dynamic)
+        "fill-opacity": 0.5     // Set the opacity of the highlight color
+      });
+    },
     // Function to download the EPUB file
     async downloadBookFile(title) {
       try {
@@ -355,6 +368,187 @@ goToNextPage() {
 </script>
 
 <style>
+body {
+  margin: 0;
+  font-family: "Arial", sans-serif;
+  background-color: #fdf8f0;
+  color: #5c4033;
+}
+
+/* Header */
+.header {
+  background-color: #d2b48c;
+  color: #fff;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+}
+
+.header button {
+  background-color: #8b4513;
+  border: none;
+  padding: 10px;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.header button:hover {
+  background-color: #a0522d;
+}
+
+/* Main Container */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px;
+}
+
+/* Reader Frame */
+.reader-frame {
+  width: 100%;
+  height: 500px;
+  border: 2px solid #8b4513;
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.viewer {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+/* Toolbar */
+.footer-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-toolbar button {
+  background-color: #8b4513;
+  border: none;
+  padding: 8px 12px;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.footer-toolbar button:hover {
+  background-color: #a0522d;
+}
+
+.footer-toolbar input[type="color"] {
+  width: 40px;
+  height: 40px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Bookmarks */
+.bookmarks {
+  margin-top: 10px;
+}
+
+.bookmarks h3 {
+  margin: 0;
+}
+
+.bookmarks ul {
+  list-style: none;
+  padding: 0;
+}
+
+.bookmark-item {
+  margin: 5px 0;
+  padding: 5px;
+  cursor: pointer;
+  border: 1px solid #8b4513;
+  border-radius: 5px;
+  background-color: #fff7e6;
+  transition: background-color 0.3s;
+}
+
+.bookmark-item:hover {
+  background-color: #ffefd5;
+}
+
+.highlighted-text {
+  padding: 0 5px;
+  border-radius: 3px;
+  color: #5c4033;
+  font-weight: bold;
+}
+
+/* Footer */
+.bottom-footer {
+  text-align: center;
+  padding: 10px;
+  background-color: #d2b48c;
+  color: #fff;
+}
+/* Ebook Reader Layout */
+.ebook-reader {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  justify-content: space-between;
+}
+
+
+
+.file-upload {
+  margin-left: auto;
+}
+
+
+
+.nav-button {
+  background-color: #8b4513;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.nav-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.nav-button:hover:not(:disabled) {
+  background-color: #a0522d;
+}
+
+/* Page Info */
+.page-info {
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
+  color: #fff;
+}
+
+/* Back Button */
+.back-button {
+  background-color: #a0522d;
+  font-weight: bold;
+}
+
+/* Loading/Error Messages */
+.error-message {
+  color: red;
+  text-align: center;
+  margin: 10px 0;
+}
+
 .book-details-container {
   display: flex; /* Ustawienie kontenera na flexbox */
   flex-direction: row; /* Układ poziomy */
@@ -370,25 +564,6 @@ goToNextPage() {
   box-sizing: border-box;
 }
 
-.book-details-text {
-  flex: 2; /* Tekst zajmuje większą część */
-  margin-right: 20px; /* Odstęp od okładki */
-}
-
-.book-cover-container {
-  flex: 1; /* Okładka zajmuje mniejszą część */
-  display: flex; /* Flexbox dla centrowania */
-  justify-content: center; /* Centrowanie poziome */
-  align-items: center; /* Centrowanie pionowe */
-}
-
-.book-cover-image {
-  max-width: 100%; /* Obraz skaluje się proporcjonalnie */
-  max-height: 300px; /* Maksymalna wysokość */
-  border: 1px solid #ddd; /* Styl ramki */
-  border-radius: 4px; /* Lekko zaokrąglone rogi */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Cień */
-}
 
 .library-container {
   display: flex;
@@ -454,6 +629,16 @@ p {
   border-radius: 5px;
 }
 
+.header {
+  background-color: #5c4033;
+  color: white;
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
 .download-button, .nav-button {
   padding: 10px 15px;
   font-size: 1em;
@@ -475,11 +660,13 @@ p {
 }
 
 .epub-viewer {
-  width: 100%;
-  height: 600px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  width: 100%; /* Full width without frame */
+  height: 100%;
+  background-color: #fff;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .loading-message, .error-message, .message, .first-word-message {

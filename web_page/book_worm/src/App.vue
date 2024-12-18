@@ -1,6 +1,6 @@
 <!-- App.vue -->
  <script setup>
- import Back from "./components/Back.vue"
+import Back from "./components/Back.vue"
 </script>
 <template>
   <div id="app">

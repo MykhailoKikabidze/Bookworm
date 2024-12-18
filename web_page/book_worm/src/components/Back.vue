@@ -1,80 +1,14 @@
 <template>
   <div>   
+    <button @click="postcheckpoints('Coraline',5)">postcheckpoints</button>
+    <button @click="postNotes('Coraline',5,'description')">postNotes</button>
+    <button @click="getCheckpoints('Coraline')">getCheckpoints</button>
+    <button @click="deleteNotes('Coraline',5,'description')">deleteNotes</button>
+    <button @click="getNotes('Coraline')">getNotes</button>
 
-    <!-- idk if it will work i just couldn't try it so it can not work properly but you can try... -->
-    <button @click="getBookInfo('Garlic & the Vampire')">For get book info for example from Boo</button>
-    <div>
-      <p>{{ this.book.publisher }}</p>
-      <p>{{ this.book.year_of_pub }}</p>
-      <p>{{ this.book.title }}</p>
-      <p>{{ this.book.description }}</p>
-
-    </div>
-    <button @click="getSubstr('me')">get Substr</button>
-    <li v-for="(person, index) in authorsForSerching" :key="index">
-        Name: {{ person.name }}, Surname: {{ person.surname }}
+    <li v-for="(person, index) in hz" :key="index">
+        Name: {{ person.page }}, Surname: {{ person.description }}
       </li>
-
-    <p>
-      Authors name: {{ this.name }}, Surname {{ this.surname }}
-    </p>
-
-    <button @click="getAuthors('Garlic & the Vampire')">get authors</button>
-    <li v-for="(person, index) in authors" :key="index">
-        Name: {{ person.name }}, Surname: {{ person.surname }}
-      </li>
-    <!-- Button to download all book images -->
-    <button @click="downloadImages">Download All Images</button>
-
-
-
-    <button @click="getGenres('Coraline')">get genres</button>
-    <ul v-if="genres && genres.length">
-  <li v-for="(genre, index) in genres" :key="index">{{ genre }}</li>
-</ul>
-<p v-else>No genres available.</p>
-
-
-<button @click="getThemes('Coraline')">get themes</button>
-    <ul v-if="themes && themes.length">
-  <li v-for="(genre, index) in themes" :key="index">{{ genre }}</li>
-</ul>
-<p v-else>No themes available.</p>
-
-    <!-- Button to display the downloaded images -->
-    <button @click="displayDownloadedImages">Display Images</button>
-
- 
-    <!-- it's only for displaying images -->
-    <div class="image-list" v-if="displayImages"> 
-      <div v-for="(imageUrl, index) in downloadedImageUrls" :key="index" class="image-item">
-        <img :src="imageUrl" alt="Book Cover" class="book-cover-image" />
-      </div>
-    </div>
-
-    <!-- this button for download and displaying images and description itd -->
-    <button @click="displayBookMetadata">Display Book Metadata</button>
-
-    <!-- this how it will be displayed images and title and so on but i couldn't test it so i don't if this works fine but i hope so -->
-    <div class="book-list" v-if="displayMetadata">
-      <div v-for="(book, index) in books" :key="index" class="book-item">
-        <h3>{{ book.title }}</h3>
-        <p><strong>Description:</strong> {{ book.description }}</p>
-        <p><strong>Yera of publication:</strong> {{ book.year_of_pub }}</p>
-        <p><strong>Publisher:</strong> {{ book.publisher }}</p>
-      </div>
-    </div>
-    <button @click="getBook()">Download Book File</button>
-
-<!-- Button to display the downloaded book file (PDF) -->
-<button @click="displayBookFiles()">Display Book File</button>
-
-<!-- PDF viewer iframe -->
-<div class="pdf-viewer" v-if="displayPdf">
-  <iframe v-if="bookPdfUrl" :src="bookPdfUrl" width="100%" height="500px" frameborder="0"></iframe>
-</div>
-
-
     <Toast ref="toastRef" />
   </div>
 </template>
@@ -88,26 +22,9 @@ export default {
   
   data() {
     return {
-      authors: [],
-      genres: [],
-      authorsForSerching: [],
-      themes: [],
 
-    downloadedImageUrls: [],  // Stores the URLs of downloaded images
-    displayImages: false, 
-    imageSrc: null, // To hold the image URL or blob
-    books: [], // Store the fetched books here
-    book: [],
-    imageUrl: null, // Holds the downloaded image URL
-    responseData: "", 
-    name: "s",
-    data: "",
-    surname: "s",
-    displayMetadata: false, // Flag to toggle metadata display
-    selectedImage: null, // To store the chosen image file
-    selectedFile: null,  // To store the chosen EPUB file
-    bookPdfUrl: null, // Holds the PDF URL to be displayed
-    displayPdf: false, // Add field for password
+      hz: [],
+
     };
   },
   components: {
@@ -118,248 +35,27 @@ export default {
   this.selectedImage = event.target.files[0];
 },
 
-async downloadBookFiles(){
-  if (this.books.length === 0) { // Assuming books stores the fetched books
-    console.log("No books available.");
-    return;
-  }
 
-  for (const book of this.books) {
-    try {
-      await this.downloadBookFile(book.title);
-    } catch (error) {
-      console.error("Error processing book title ${book.title}", error);
-    }
-  }
-},
-
-// handleFileUpload(event) {
-//   this.selectedFile = event.target.files[0];
-// },
-// async getFile() {
-//   if (this.books.length === 0) { // Assuming `books` stores the fetched books
-//     console.log("No books available.");
-//     return;
-//   }
-
-//   for (const book of this.books) {
-//     try {
-//       await this.displayImage(book.title);
-//     } catch (error) {
-//       console.error(`Error processing book title "${book.title}":`, error);
-//     }
-//   }
-// },
-
-// // Function to display the downloaded book file (PDF) in the window
-// async displayBookFile(title) {
-//   const toastRef = this.$refs.toastRef;
-//   const params = new URLSearchParams();
-//   params.append("title", title);
-
-//   try {
-//     const response = await fetch(`${this.$link_backend}/books/file?${params.toString()}`, {
-//       method: "GET",
-//       headers: {
-//         "ngrok-skip-browser-warning": "anyValue",
-//         "Authorization": "Bearer " + localStorage.getItem("authToken"),
-//       },
-//     });
-
-//     if (response.ok) {
-//       const blob = await response.blob(); // Parse the response as a Blob
-//       const url = URL.createObjectURL(blob); // Create an object URL for the file
-
-//       // Set the PDF URL for display in iframe
-//       this.bookPdfUrl = url;
-//       this.displayPdf = true; // Show the iframe to display the PDF
-
-//       // Show success notification
-//       toastRef.message = `Successfully fetched and displaying book file for "${title}"`;
-//       toastRef.notificationClass = "success-toast";
-//     } else {
-//       const errorData = await response.json();
-//       toastRef.message = `Error fetching file for "${title}": ${errorData.detail || "Unknown error"}`;
-//       toastRef.notificationClass = "error-toast";
-//     }
-//   } catch (error) {
-//     console.error(`Error fetching and displaying book file for "${title}":`, error);
-//     toastRef.message = `Network error. Could not fetch and display book file for "${title}". ${error.message}`;
-//     toastRef.notificationClass = "error-toast";
-//   }
-
-//   this.$refs.toastRef.showNotificationMessage(); // Display the toast notification
-// }
-// ,
-
-// async getBook() {
-//   const toastRef = this.$refs.toastRef;
-//   const params = new URLSearchParams();
-//   params.append("page", 1);
-//   params.append("page_size", 10);
-
-//   try {
-//     const response = await fetch(`${this.$link_backend}/books/all?${params.toString()}`, {
-//       method: "GET",
-//       headers: {
-//         "Content-type": "application/json",
-//         "ngrok-skip-browser-warning": "anyValue",
-//       },
-//     });
-
-//     if (response.ok) {
-//       const data = await response.json();
-//       this.books = data.map(book => ({
-//             title: book.title,
-//             description: book.description || "No description available.",
-//             genres: book.genres || [],
-//             author: book.author || "Unknown Author",
-//             published_date: book.published_date || "Unknown Date",
-//           }));      console.log(data); // Log the fetched data to check
-
-//       // Assuming the response contains an array of books
-//       if (Array.isArray(data)) {
-//         const titles = data.map(book => book.title).join(", "); // Concatenate all book titles
-//         toastRef.message = `Books fetched successfully! Titles: ${titles}`;
-//         toastRef.notificationClass = "success-toast";
-//       } else {
-//         toastRef.message = "Unexpected data format received.";
-//         toastRef.notificationClass = "error-toast";
-//       }
-//       await this.downloadBookFile();
-//     } else {
-//       const errorData = await response.json();
-//       toastRef.message = "Error fetching books: " + (errorData.detail || "Unknown error");
-//       toastRef.notificationClass = "error-toast";
-//     }
-//   } catch (error) {
-//     console.error("Error fetching book data:", error);
-//     toastRef.message = "Network error. Please try again. " + error.message;
-//     toastRef.notificationClass = "error-toast";
-//   }
-
-//   this.$refs.toastRef.showNotificationMessage();
-// },
-// Function to download book file
-// async downloadBookFile(title) {
-//   const toastRef = this.$refs.toastRef;
-//   const params = new URLSearchParams();
-//   params.append("title", title); // Using title to request the book file
-
-//   try {
-//     const response = await fetch(`${this.$link_backend}/books/file?${params.toString()}`, {
-//       method: "GET",
-//       headers: {
-//         "ngrok-skip-browser-warning": "anyValue",
-//         "Authorization": "Bearer " + localStorage.getItem("authToken"),
-//       },
-//     });
-
-//     if (response.ok) {
-//       const blob = await response.blob(); // Parse the response as a Blob
-//       const url = URL.createObjectURL(blob); // Create an object URL for the file
-
-//       // Trigger the download
-//       const a = document.createElement("a");
-//       a.href = url;
-//       a.download = `${title}.pdf`; // Assuming it's a PDF file (adjust the extension if needed)
-//       a.click();
-
-//       // Revoke the URL after use to release memory
-//       URL.revokeObjectURL(url);
-
-//       // Show success notification
-//       toastRef.message = `Successfully downloaded the book file for "${title}"`;
-//       toastRef.notificationClass = "success-toast";
-//     } else {
-//       const errorData = await response.json();
-//       toastRef.message = `Error fetching file for "${title}": ${errorData.detail || "Unknown error"}`;
-//       toastRef.notificationClass = "error-toast";
-//     }
-//   } catch (error) {
-//     console.error(`Error downloading book file for "${title}":`, error);
-//     toastRef.message = `Network error. Could not download book file for "${title}". ${error.message}`;
-//     toastRef.notificationClass = "error-toast";
-//   }
-
-//   this.$refs.toastRef.showNotificationMessage(); // Display the toast notification
-// }
-// ,
-
-displayBookMetadata() {
-      if (this.books.length === 0) {
-        this.downloadImages(); // Fetch books if not already fetched
-      }
-      this.displayMetadata = !this.displayMetadata; // Toggle display
-    },
-    // Function to download images
-    async downloadImages() {
-      const toastRef = this.$refs.toastRef;
-      const params = new URLSearchParams();
-      params.append("page", 1);
-      params.append("page_size", 10);
-
-      try {
-        const response = await fetch(`${this.$link_backend}/books/all?${params.toString()}`, {
-          method: "GET",
-          headers: {
-            "Content-type": "application/json",
-            "ngrok-skip-browser-warning": "anyValue",
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          
-          this.books = data.map(book => ({
-            title: book.title,
-            description: book.description || "No description available.",
-            genres: book.genres || [],
-            author: book.author || "Unknown Author",
-            published_date: book.published_date || "Unknown Date",
-          }));
-          // Loop through the fetched books and download their images
-          for (const book of data) {
-            await this.downloadImage(book.title);
-          }
-
-          toastRef.message = `Images downloaded successfully!`;
-          toastRef.notificationClass = "success-toast";
-        } else {
-          const errorData = await response.json();
-          toastRef.message = "Error fetching books: " + (errorData.detail || "Unknown error");
-          toastRef.notificationClass = "error-toast";
-        }
-      } catch (error) {
-        console.error("Error fetching book data:", error);
-        toastRef.message = "Network error. Please try again. " + error.message;
-        toastRef.notificationClass = "error-toast";
-      }
-
-      this.$refs.toastRef.showNotificationMessage();
-    },
-
-    async getBookInfo(title) {
+    async postcheckpoints(title,page) {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
       params.append("title", title);
+      params.append("page", page);
 
       try {
-        const response = await fetch(`${this.$link_backend}/books/info?${params.toString()}`, {
-          method: "GET",
+        const response = await fetch(`${this.$link_backend}/checkpoints?${params.toString()}`, {
+          method: "POST",
           headers: {
             "ngrok-skip-browser-warning": "anyValue",
+            "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+
           },
         });
 
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json();          
 
-           this.book = data;
-          // and to get book title or description and so on you can just write this.book.title and so on
-          
-
-          toastRef.message = `Successfully downloaded image for "${title}"`;
+          toastRef.message = `Successfull"`;
           toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
@@ -374,30 +70,93 @@ displayBookMetadata() {
 
       this.$refs.toastRef.showNotificationMessage();
     },
-
-    // Function to download an individual image and store its URL
-    async downloadImage(title) {
+    async getCheckpoints(title) {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
       params.append("title", title);
 
       try {
-        const response = await fetch(`${this.$link_backend}/books/img?${params.toString()}`, {
+        const response = await fetch(`${this.$link_backend}/checkpoints?${params.toString()}`, {
           method: "GET",
           headers: {
+            "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
             "ngrok-skip-browser-warning": "anyValue",
-            "Authorization": "Bearer " + localStorage.getItem("authToken"),
           },
         });
 
         if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob); // Create an object URL for the image
+          const data = await response.json();          
+          
+          toastRef.message = `Successfull ${data}"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
 
-          // Add the image URL to the list
-          this.downloadedImageUrls.push(url);
+      this.$refs.toastRef.showNotificationMessage();
+    },  
+    async getNotes(title) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
 
-          toastRef.message = `Successfully downloaded image for "${title}"`;
+      try {
+        const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
+          method: "GET",
+          headers: {
+                    "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+
+                    "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();          
+          this.hz = Array.isArray(data) ? data : [];
+
+          toastRef.message = `Successfull"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },  
+      async deleteNotes(title,page,description) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
+      params.append("page", page);
+      params.append("description", description);
+
+      try {
+        const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
+          method: "DELETE",
+          headers: {
+                    "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+
+                    "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();          
+          
+          toastRef.message = `Successfull"`;
           toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
@@ -412,247 +171,76 @@ displayBookMetadata() {
 
       this.$refs.toastRef.showNotificationMessage();
     },
-   
-    async getAuthors(title) {
+    async putNotes(title,page,description,new_description) {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
       params.append("title", title);
+      params.append("page", page);
+      params.append("description", description);
+      params.append("new_description", new_description);
 
       try {
-        const response = await fetch(`${this.$link_backend}/books/authors?${params.toString()}`, {
-          method: "GET",
+        const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
+          method: "PUT",
           headers: {
+            "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
             "ngrok-skip-browser-warning": "anyValue",
           },
         });
 
         if (response.ok) {
-          const data = await response.json();
-
-          this.authors = data;
-
-          toastRef.message = `Successful#"`;
+          const data = await response.json();          
+          
+          toastRef.message = `Successfull"`;
           toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
-          toastRef.message = `Error fetching: ${errorData.detail || "Unknown error"}`;
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
         }
       } catch (error) {
-        console.error(`Error :`, error);
-        toastRef.message = `Network error. Could not fetch. ${error.message}`;
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
       }
 
       this.$refs.toastRef.showNotificationMessage();
     },
-    async getThemes(title) {
+    async postNotes(title,page,description) {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
       params.append("title", title);
+      params.append("page", page);
+      params.append("description", description);
 
       try {
-        const response = await fetch(`${this.$link_backend}/books/themes?${params.toString()}`, {
-          method: "GET",
+        const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
+          method: "POST",
           headers: {
+            "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
             "ngrok-skip-browser-warning": "anyValue",
           },
         });
 
         if (response.ok) {
-          const data = await response.json();
-          this.themes = Array.isArray(data) ? data : [];
-
-          toastRef.message = `Successful#"`;
+          const data = await response.json();          
+          
+          toastRef.message = `Successfull"`;
           toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
-          toastRef.message = `Error fetching: ${errorData.detail || "Unknown error"}`;
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
         }
       } catch (error) {
-        console.error(`Error :`, error);
-        toastRef.message = `Network error. Could not fetch. ${error.message}`;
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
       }
 
       this.$refs.toastRef.showNotificationMessage();
     },
-    async getGenres(title) {
-      const toastRef = this.$refs.toastRef;
-      const params = new URLSearchParams();
-      params.append("title", 'Book test');
-
-      try {
-        const response = await fetch(`${this.$link_backend}/books/genres?${params.toString()}`, {
-          method: "GET",
-          headers: {
-            "ngrok-skip-browser-warning": "anyValue",
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          this.genres = Array.isArray(data) ? data : [];
-
-          console.log("Genres received:", data); // Debugging line
-          toastRef.message = `Successful#"`;
-          toastRef.notificationClass = "success-toast";
-        } else {
-          const errorData = await response.json();
-          toastRef.message = `Error fetching: ${errorData.detail || "Unknown error"}`;
-          toastRef.notificationClass = "error-toast";
-        }
-      } catch (error) {
-        console.error(`Error :`, error);
-        toastRef.message = `Network error. Could not fetch. ${error.message}`;
-        toastRef.notificationClass = "error-toast";
-      }
-
-      this.$refs.toastRef.showNotificationMessage();
-    },
-
-    // Function to toggle the visibility of downloaded images
-    displayDownloadedImages() {
-      this.displayImages = !this.displayImages; // Toggle the flag
-    },
-
-    
-    async getSubstr(substr) {
-      const toastRef = this.$refs.toastRef;
-      const params = new URLSearchParams();
-      params.append("substr", substr);
-
-      try {
-        const response = await fetch(`${this.$link_backend}/author/substr?${params.toString()}`, {
-          method: "GET",
-          headers: {
-            "ngrok-skip-browser-warning": "anyValue",
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-
-          this.authorsForSerching = data;
-
-          this.name = data.name;
-          this.surname = data.surname;
-
-          toastRef.message = `Successful#"`;
-          toastRef.notificationClass = "success-toast";
-        } else {
-          const errorData = await response.json();
-          toastRef.message = `Error fetching :" ${errorData.detail || "Unknown error"}`;
-          toastRef.notificationClass = "error-toast";
-        }
-      } catch (error) {
-        console.error(`Error :`, error);
-        toastRef.message = `Network error. Could not fetch". ${error.message}`;
-        toastRef.notificationClass = "error-toast";
-      }
-
-      this.$refs.toastRef.showNotificationMessage();
-    },
-
-    // // Function to toggle the visibility of downloaded images
-    // displayDownloadedImages() {
-    //   this.displayImages = !this.displayImages; // Toggle the flag
-    // },
-
-
-// async getBooksFile(title) {
-//   const toastRef = this.$refs.toastRef; // Reference to the Toast component
-//   const params = new URLSearchParams();
-//   params.append("title", title);
-
-//   try {
-//     const response = await fetch(`${this.$link_backend}/books/file?${params.toString()}`, {
-//       method: "GET",
-//       headers: {
-//         "ngrok-skip-browser-warning": "anyValue", // Custom header if required
-//         "Authorization": "Bearer " + localStorage.getItem("authToken"),
-//       },
-//     });
-
-//     if (response.ok) {
-//       const blob = await response.blob(); // Parse the response as a Blob
-//       const url = URL.createObjectURL(blob); // Create an object URL for the file
-
-//       // Trigger the download
-//       const a = document.createElement("a");
-//       a.href = url;
-//       a.download = title; // Use the book title as the file name
-//       a.click();
-
-//       // Revoke the URL after use to release memory
-//       URL.revokeObjectURL(url);
-
-//       // Show success notification
-//       toastRef.message = `Successfully downloaded file for "${title}"`;
-//       toastRef.notificationClass = "success-toast";
-//     } else {
-//       const errorData = await response.json();
-//       toastRef.message = `Error fetching file for "${title}": ${errorData.detail || "Unknown error"}`;
-//       toastRef.notificationClass = "error-toast";
-//     }
-//   } catch (error) {
-//     console.error(`Error downloading file for "${title}":`, error);
-//     toastRef.message = `Network error. Could not download file for "${title}". ${error.message}`;
-//     toastRef.notificationClass = "error-toast";
-//   }
-
-//   this.$refs.toastRef.showNotificationMessage(); // Display the toast notification
-// }
-// ,
-
-// async displayImage(title) {
-//   const toastRef = this.$refs.toastRef; // Reference to the Toast component
-//   const params = new URLSearchParams();
-//   params.append("title", title);
-
-//   try {
-//     // Fetch the image file from the backend
-//     const response = await fetch(`${this.$link_backend}/books/img?${params.toString()}`, {
-//       method: "GET",
-//       headers: {
-//         "ngrok-skip-browser-warning": "anyValue", // Custom header if required
-//         "Authorization": "Bearer " + localStorage.getItem("authToken"),
-//       },
-//     });
-
-//     if (response.ok) {
-//       const blob = await response.blob(); // Parse the response as a Blob
-//       const url = URL.createObjectURL(blob); // Create an object URL for the image
-
-//       // Trigger the image download (like getBooksFile)
-//       const a = document.createElement("a");
-//       a.href = url;
-//       a.download = `${title}.png`; // Use a default extension if backend doesn't provide it
-//       a.click();
-
-//       // Display the image in the same window
-//       this.imageUrl = url;
-
-//       // Show success notification
-//       toastRef.message = `Successfully downloaded and displayed image for "${title}"`;
-//       toastRef.notificationClass = "success-toast";
-//     } else {
-//       const errorData = await response.json();
-//       toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
-//       toastRef.notificationClass = "error-toast";
-//     }
-//   } catch (error) {
-//     console.error(`Error downloading and displaying image for "${title}":`, error);
-//     toastRef.message = `Network error. Could not download image for "${title}". ${error.message}`;
-//     toastRef.notificationClass = "error-toast";
-//   }
-
-//   this.$refs.toastRef.showNotificationMessage(); // Display the toast notification
-// }
-
 },
-
 };
 </script>
 

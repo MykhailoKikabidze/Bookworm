@@ -511,6 +511,8 @@ async def create_note(
     title: str,
     page: int,
     description: str,
+    quote: str,
+    character: int,
     db: AsyncSession = Depends(get_db_session),
     curr_user: models.UsersModel = Depends(get_current_user),
 ):
@@ -520,7 +522,7 @@ async def create_note(
             status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
         )
 
-    res = await add_note(db, book, curr_user, page, description)
+    res = await add_note(db, book, curr_user, page, description, quote, character)
 
     if not res:
         raise HTTPException(
@@ -536,6 +538,8 @@ async def change_note(
     page: int,
     description: str,
     new_description: str,
+    quote: str,
+    character: int,
     db: AsyncSession = Depends(get_db_session),
     curr_user: models.UsersModel = Depends(get_current_user),
 ):
@@ -545,11 +549,14 @@ async def change_note(
             status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
         )
 
-    res = await update_note(db, book, curr_user, page, description, new_description)
+    res = await update_note(
+        db, book, curr_user, page, description, new_description, quote, character
+    )
 
     if not res:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Note is not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note is not found or redundation",
         )
 
     return {"status": 200}
@@ -560,6 +567,8 @@ async def remove_note(
     title: str,
     page: int,
     description: str,
+    quote: str,
+    character: int,
     db: AsyncSession = Depends(get_db_session),
     curr_user: models.UsersModel = Depends(get_current_user),
 ):
@@ -569,7 +578,7 @@ async def remove_note(
             status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
         )
 
-    res = await delete_note(db, book, curr_user, page, description)
+    res = await delete_note(db, book, curr_user, page, description, quote, character)
 
     if not res:
         raise HTTPException(

@@ -22,3 +22,5 @@ class NoteModel(Base):
     id_book = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"))
     page = Column(Integer, index=True)
     description = Column(String)
+    quote = Column(String)
+    character = Column(Integer)

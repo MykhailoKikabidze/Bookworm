@@ -55,7 +55,13 @@ async def show_checkpoint(db: AsyncSession, book: BookModel, user: UsersModel) -
 
 
 async def search_note(
-    db: AsyncSession, book: BookModel, user: UsersModel, page: int, description: str
+    db: AsyncSession,
+    book: BookModel,
+    user: UsersModel,
+    page: int,
+    description: str,
+    quote: str,
+    character: int,
 ) -> NoteModel:
     await db.merge(book)
     await db.merge(user)
@@ -67,6 +73,8 @@ async def search_note(
                 NoteModel.id_book == book.id,
                 NoteModel.page == page,
                 NoteModel.description == description,
+                NoteModel.quote == quote,
+                NoteModel.character == character,
             )
         )
     )
@@ -75,18 +83,29 @@ async def search_note(
 
 
 async def add_note(
-    db: AsyncSession, book: BookModel, user: UsersModel, page: int, description: str
+    db: AsyncSession,
+    book: BookModel,
+    user: UsersModel,
+    page: int,
+    description: str,
+    quote: str,
+    character: int,
 ) -> bool:
     await db.merge(book)
     await db.merge(user)
 
-    note = await search_note(db, book, user, page, description)
+    note = await search_note(db, book, user, page, description, quote, character)
 
     if note:
         return False
 
     note = NoteModel(
-        id_user=user.id, id_book=book.id, page=page, description=description
+        id_user=user.id,
+        id_book=book.id,
+        page=page,
+        description=description,
+        quote=quote,
+        character=character,
     )
 
     db.add(note)
@@ -102,10 +121,18 @@ async def update_note(
     page: int,
     description: str,
     new_description: str,
+    quote: str,
+    character: int,
 ) -> bool:
-    note = await search_note(db, book, user, page, description)
+    note = await search_note(db, book, user, page, description, quote, character)
+    note_check = await search_note(
+        db, book, user, page, new_description, quote, character
+    )
 
     if not note:
+        return False
+
+    if note_check:
         return False
 
     note.description = new_description
@@ -117,9 +144,15 @@ async def update_note(
 
 
 async def delete_note(
-    db: AsyncSession, book: BookModel, user: UsersModel, page: int, description: str
+    db: AsyncSession,
+    book: BookModel,
+    user: UsersModel,
+    page: int,
+    description: str,
+    quote: str,
+    character: int,
 ):
-    note = await search_note(db, book, user, page, description)
+    note = await search_note(db, book, user, page, description, quote, character)
 
     if not note:
         return False

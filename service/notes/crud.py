@@ -1,9 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, func, and_
+from sqlalchemy import select, and_
 
 from auth.models import UsersModel
 from books.models import BookModel
-from notes.models import CheckpointModel, NoteModel
+from notes.models import CheckpointModel, NoteModel, GroupModel
+from notes.schemas import GroupSchema
 
 
 async def new_checkpoint(
@@ -175,3 +176,85 @@ async def show_notes(db: AsyncSession, book: BookModel, user: UsersModel):
     )
 
     return notes.scalars().all()
+
+
+async def search_group(db: AsyncSession, book: BookModel, user: UsersModel):
+
+    await db.merge(book)
+    await db.merge(user)
+
+    group = await db.execute(
+        select(GroupModel).filter(
+            and_(
+                GroupModel.id_user == user.id,
+                GroupModel.id_book == book.id,
+            )
+        )
+    )
+
+    return group.scalars().first()
+
+
+async def new_group(
+    db: AsyncSession, group: GroupSchema, book: BookModel, user: UsersModel
+) -> bool:
+
+    await db.merge(book)
+    await db.merge(user)
+
+    check_group = await search_group(db, book, user)
+
+    if check_group:
+        return False
+
+    group_model = GroupModel(
+        id_user=user.id,
+        id_book=book.id,
+        is_favourite=group.is_favourite,
+        want_to_read=group.want_to_read,
+        now_reading=group.now_reading,
+        have_read=group.have_read,
+    )
+
+    db.add(group_model)
+    await db.commit()
+
+    return True
+
+
+async def change_group(
+    db: AsyncSession, group: GroupSchema, book: BookModel, user: UsersModel
+) -> bool:
+
+    await db.merge(book)
+    await db.merge(user)
+
+    group_model = await search_group(db, book, user)
+
+    if not group_model:
+        return False
+
+    group_model.is_favourite = group.is_favourite
+    group_model.want_to_read = group.want_to_read
+    group_model.now_reading = group.now_reading
+    group_model.have_read = group.have_read
+
+    db.add(group_model)
+    await db.commit()
+
+    return True
+
+
+async def delete_group(db: AsyncSession, book: BookModel, user: UsersModel) -> bool:
+    await db.merge(book)
+    await db.merge(user)
+
+    group_model = await search_group(db, book, user)
+
+    if not group_model:
+        return False
+
+    await db.delete(group_model)
+    await db.commit()
+
+    return True

@@ -18,7 +18,7 @@ from fastapi.responses import StreamingResponse
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from auth.crud import get_user, authenticate_user, authorize_user
-from notes.schemas import NoteSchema
+from notes.schemas import NoteSchema, GroupSchema
 from setting.crud import change_username, change_password, delete_account
 from auth import schemas, models
 from books.schemas import BookScheme, AuthorScheme
@@ -40,6 +40,10 @@ from notes.crud import (
     update_note,
     delete_note,
     show_notes,
+    new_group,
+    change_group,
+    search_group,
+    delete_group,
 )
 import uvicorn
 import asyncio
@@ -583,6 +587,112 @@ async def remove_note(
     if not res:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Note is not found"
+        )
+
+    return {"status": 200}
+
+
+@app.post("/groups", tags=["groups"], response_model=dict)
+async def add_group(
+    group: GroupSchema,
+    title: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    book = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
+        )
+
+    group_dict = dict(group)
+    del group_dict["is_favourite"]
+
+    if sum([1 for i in group_dict.values() if i]) != 1:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Group not in checkbox model"
+        )
+
+    res = await new_group(db, group, book, curr_user)
+
+    if not res:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Group already exists"
+        )
+
+    return {"status": 200}
+
+
+@app.get("/groups", tags=["groups"], response_model=GroupSchema)
+async def get_group(
+    title: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    book = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
+        )
+
+    res = await search_group(db, book, curr_user)
+
+    if not res:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Group not founded"
+        )
+
+    return res
+
+
+@app.put("/groups", tags=["groups"], response_model=dict)
+async def update_group(
+    group: GroupSchema,
+    title: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    book = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
+        )
+
+    group_dict = dict(group)
+    del group_dict["is_favourite"]
+
+    if sum([1 for i in group_dict.values() if i]) != 1:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Group not in checkbox model"
+        )
+
+    res = await change_group(db, group, book, curr_user)
+
+    if not res:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Group not founded"
+        )
+
+    return {"status": 200}
+
+
+@app.delete("/groups", tags=["groups"], response_model=dict)
+async def remove_group(
+    title: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    book = await search_book_by_title(db, title)
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
+        )
+
+    res = await delete_group(db, book, curr_user)
+
+    if not res:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Group not founded"
         )
 
     return {"status": 200}

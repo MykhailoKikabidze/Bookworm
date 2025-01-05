@@ -6,3 +6,10 @@ class NoteSchema(BaseModel):
     description: str
     quote: str
     character: int
+
+
+class GroupSchema(BaseModel):
+    is_favourite: bool
+    want_to_read: bool
+    now_reading: bool
+    have_read: bool

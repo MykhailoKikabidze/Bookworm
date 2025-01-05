@@ -30,6 +30,9 @@ class BookModel(Base):
     users_notes = relationship(
         "UsersModel", secondary="notes", back_populates="books_notes"
     )
+    users_groups = relationship(
+        "UsersModel", secondary="groups", back_populates="books_groups"
+    )
 
 
 class ThemeModel(Base):

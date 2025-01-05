@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from db import Base
 
 
@@ -24,3 +24,18 @@ class NoteModel(Base):
     description = Column(String)
     quote = Column(String)
     character = Column(Integer)
+
+
+class GroupModel(Base):
+    __tablename__ = "groups"
+
+    id_user = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    id_book = Column(
+        Integer, ForeignKey("books.id", ondelete="CASCADE"), primary_key=True
+    )
+    is_favourite = Column(Boolean)
+    want_to_read = Column(Boolean)
+    now_reading = Column(Boolean)
+    have_read = Column(Boolean)

@@ -19,3 +19,6 @@ class UsersModel(Base):
     books_notes = relationship(
         "BookModel", secondary="notes", back_populates="users_notes"
     )
+    books_groups = relationship(
+        "BookModel", secondary="groups", back_populates="users_groups"
+    )

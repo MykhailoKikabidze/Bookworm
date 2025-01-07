@@ -5,11 +5,25 @@
     <button @click="getCheckpoints('Coraline')">getCheckpoints</button>
     <button @click="deleteNotes('Coraline',5,'description','want to make it right',122)">deleteNotes</button>
     <button @click="getGroups('Coraline')">getGroups</button>
-    <button @click="postGroups('Coraline')">postGroups</button>
+    <button @click="postGroups('test')">postGroups</button>
+    <button @click="deleteGroups('test')">deleteGroups</button>
+    <button @click="putGroups('Coraline')">putGroups</button>
+    <button @click="getBooksFilter('admin@admin.admin')">filter</button>
 
-    <li v-for="(person, index) in themes" :key="index">
-        Name: {{ person }}#
-      </li>
+
+    <div
+    v-for="(book, index) in books"
+    :key="index"
+    class="book-item"
+    @click="viewBookDetails(book, downloadedImageUrls[index])"
+  >
+    <div class="book-info">
+      <h3>{{ book.title }}</h3>
+      <p><strong>Year of Publication:</strong> {{ book.year_of_pub }}</p>
+      <p><strong>Publisher:</strong> {{ book.publisher }}</p>
+    </div>
+  </div>
+
     <Toast ref="toastRef" />
   </div>
 </template>
@@ -23,11 +37,14 @@ export default {
   
   data() {
     return {
-      isFavourite: true,
+      isFavourite: false,
       wantToRead:false,
-      nowReading: false,
+      nowReading: true,
       haveRead: false,
-      themes: [],
+      themes: ["Mystery"],
+      genres: [],
+      authors: [],
+      books: [],
       hz: [],
 
     };
@@ -39,6 +56,147 @@ export default {
     handleImageUpload(event) {
   this.selectedImage = event.target.files[0];
 },
+async getBooksFilter(title) {
+  const toastRef = this.$refs.toastRef; // Reference for notifications
+
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
+
+    // Create the JSON object for the request body
+    const requestBody = {
+      authors : this.authors,
+      themes: this.themes,
+      genres: this.genres,
+      group_props: this.group_props
+    };
+
+    // Execute the POST request with JSON body
+    const response = await fetch(`${this.$link_backend}/filter/books?${params.toString()}`, {
+      method: "GET",
+      headers: {
+       // "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+        "Content-Type": "application/json", // Set content type to JSON
+      },
+      body: JSON.stringify(requestBody), // Use JSON.stringify to send the body as JSON
+    });
+
+    // Handle response
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
+      toastRef.notificationClass = "error-toast";
+      this.$refs.toastRef.showNotificationMessage();
+      return;
+    }
+
+    const data = await response.json();
+
+          // Store the fetched books
+          this.books = data.map(book => ({
+            title: book.title,
+            publisher: book.publisher,
+            year_of_pub: book.year_of_pub,
+            description: book.description,
+            url: book.url,
+            url_img: book.url_img,
+            num_of_pages: book.num_of_pages
+          }));
+
+    toastRef.message = "The book has been successfully added!";
+    toastRef.notificationClass = "success-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    console.log(result);
+  } catch (error) {
+    console.error("Error:", error);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+  }
+}
+,
+async putGroups(title) {
+  const toastRef = this.$refs.toastRef; // Reference for notifications
+
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
+
+    // Create the JSON object for the request body
+    const requestBody = {
+      is_favourite: false,
+      want_to_read: false,
+      now_reading: true,
+      have_read: false
+    };
+
+    // Execute the POST request with JSON body
+    const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+        "Content-Type": "application/json", // Set content type to JSON
+      },
+      body: JSON.stringify(requestBody), // Use JSON.stringify to send the body as JSON
+    });
+
+    // Handle response
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
+      toastRef.notificationClass = "error-toast";
+      this.$refs.toastRef.showNotificationMessage();
+      return;
+    }
+
+    const result = await response.json();
+    toastRef.message = "The book has been successfully added!";
+    toastRef.notificationClass = "success-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    console.log(result);
+  } catch (error) {
+    console.error("Error:", error);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+  }
+}
+,
+
+async deleteGroups(title) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
+
+      try {
+        const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+          method: "DELETE",
+          headers: {
+                    "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+                    "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();          
+          
+          toastRef.message = `Successfull"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },
 async getGroups(title) {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
@@ -82,10 +240,10 @@ async postGroups(title) {
 
     // Create the JSON object for the request body
     const requestBody = {
-      is_favourite: this.isFavourite,
-      want_to_read: this.wantToRead,
-      now_reading: this.nowReading,
-      have_read: this.haveRead
+      is_favourite: false,
+      want_to_read: false,
+      now_reading: true,
+      have_read: false
     };
 
     // Execute the POST request with JSON body
@@ -102,7 +260,7 @@ async postGroups(title) {
     // Handle response
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Error response:", JSON.stringify(errorData, null, 2));
+      console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
       toastRef.notificationClass = "error-toast";
       this.$refs.toastRef.showNotificationMessage();
       return;
@@ -120,8 +278,6 @@ async postGroups(title) {
     this.$refs.toastRef.showNotificationMessage();
   }
 }
-
-
 ,
 
     async postcheckpoints(title,page) {

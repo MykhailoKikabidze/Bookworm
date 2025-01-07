@@ -14,11 +14,11 @@
     @click="viewBookDetails(book, downloadedImageUrls[index])"
   >
     <img :src="downloadedImageUrls[index]" alt="Book Cover" class="book-cover" />
-    <div class="book-info">
-      <h3>{{ book.title }}</h3>
+ <br>
+      <h2>{{ book.title }}</h2>
       <p><strong>Year of Publication:</strong> {{ book.year_of_pub }}</p>
       <p><strong>Publisher:</strong> {{ book.publisher }}</p>
-    </div>
+
   </div>
 </div>
 
@@ -160,6 +160,13 @@ export default {
 
 
 <style scoped>
+h2 {
+color: #2c0404;
+}
+
+p {
+color: #5e5c5c;
+}
 .library-container {
   position: relative;
   width: 100%; /* Ensure it takes up the full width */
@@ -226,7 +233,7 @@ export default {
   background-color: white;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   width: 100%; /* Szerokość 100% w ramach kontenera */
-  height: 380px; /* Zmniejszona wysokość */
+  height: 330px; /* Zmniejszona wysokość */
   text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }

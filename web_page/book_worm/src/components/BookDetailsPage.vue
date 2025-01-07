@@ -145,12 +145,15 @@ export default {
   methods: {
     
     
-    async deleteNotes(title, page, description) {
+    async deleteNotes(title, page, description,quote,character) {
   const toastRef = this.$refs.toastRef;
   const params = new URLSearchParams();
   params.append("title", title);
   params.append("page", page);
   params.append("description", description);
+  params.append("quote", quote);
+  params.append("character", character);
+
 
   try {
     const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
@@ -233,12 +236,14 @@ export default {
     }
   },
 
-  async postNotes(title, page, description) {
+  async postNotes(title, page, description,quote,character) {
     const toastRef = this.$refs.toastRef;
     const params = new URLSearchParams();
     params.append("title", title);
     params.append("page", page);
     params.append("description", description);
+    params.append("quote", quote);
+    params.append("character", character);
 
     try {
       const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
@@ -459,7 +464,7 @@ export default {
 
         if (response.ok) {
           const data = await response.json();
-          this.themes = Array.isArray(data) ? data : [];
+          this.book.themes = Array.isArray(data) ? data : [];
 
           toastRef.message = `Successfully fetched themes for "${title}"`;
           toastRef.notificationClass = "success-toast";

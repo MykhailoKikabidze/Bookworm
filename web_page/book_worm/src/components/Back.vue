@@ -1,13 +1,14 @@
 <template>
   <div>   
     <button @click="postcheckpoints('Coraline',5)">postcheckpoints</button>
-    <button @click="postNotes('Coraline',5,'description')">postNotes</button>
+    <button @click="postNotes('Coraline',5,'description','want to make it right',122)">postNotes</button>
     <button @click="getCheckpoints('Coraline')">getCheckpoints</button>
-    <button @click="deleteNotes('Coraline',5,'description')">deleteNotes</button>
-    <button @click="getNotes('Coraline')">getNotes</button>
+    <button @click="deleteNotes('Coraline',5,'description','want to make it right',122)">deleteNotes</button>
+    <button @click="getGroups('Coraline')">getGroups</button>
+    <button @click="postGroups('Coraline')">postGroups</button>
 
-    <li v-for="(person, index) in hz" :key="index">
-        Name: {{ person.page }}, Surname: {{ person.description }}
+    <li v-for="(person, index) in themes" :key="index">
+        Name: {{ person }}#
       </li>
     <Toast ref="toastRef" />
   </div>
@@ -22,7 +23,11 @@ export default {
   
   data() {
     return {
-
+      isFavourite: true,
+      wantToRead:false,
+      nowReading: false,
+      haveRead: false,
+      themes: [],
       hz: [],
 
     };
@@ -34,7 +39,90 @@ export default {
     handleImageUpload(event) {
   this.selectedImage = event.target.files[0];
 },
+async getGroups(title) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
 
+      try {
+        const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+          method: "GET",
+          headers: {
+                    "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+
+                    "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();          
+          this.hz = data;
+
+          toastRef.message = `Successfull"${data.have_read}`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },  
+async postGroups(title) {
+  const toastRef = this.$refs.toastRef; // Reference for notifications
+
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
+
+    // Create the JSON object for the request body
+    const requestBody = {
+      is_favourite: this.isFavourite,
+      want_to_read: this.wantToRead,
+      now_reading: this.nowReading,
+      have_read: this.haveRead
+    };
+
+    // Execute the POST request with JSON body
+    const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+        "Content-Type": "application/json", // Set content type to JSON
+      },
+      body: JSON.stringify(requestBody), // Use JSON.stringify to send the body as JSON
+    });
+
+    // Handle response
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error response:", JSON.stringify(errorData, null, 2));
+      toastRef.notificationClass = "error-toast";
+      this.$refs.toastRef.showNotificationMessage();
+      return;
+    }
+
+    const result = await response.json();
+    toastRef.message = "The book has been successfully added!";
+    toastRef.notificationClass = "success-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    console.log(result);
+  } catch (error) {
+    console.error("Error:", error);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+  }
+}
+
+
+,
 
     async postcheckpoints(title,page) {
       const toastRef = this.$refs.toastRef;
@@ -136,12 +224,14 @@ export default {
 
       this.$refs.toastRef.showNotificationMessage();
     },  
-      async deleteNotes(title,page,description) {
+      async deleteNotes(title,page,description,quote,character) {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
       params.append("title", title);
       params.append("page", page);
       params.append("description", description);
+      params.append("quote", quote);
+      params.append("character", character);
 
       try {
         const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
@@ -171,14 +261,15 @@ export default {
 
       this.$refs.toastRef.showNotificationMessage();
     },
-    async putNotes(title,page,description,new_description) {
+    async putNotes(title,page,description,new_description,quote,character) {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
       params.append("title", title);
       params.append("page", page);
       params.append("description", description);
       params.append("new_description", new_description);
-
+      params.append("quote", quote);
+      params.append("character", character);
       try {
         const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
           method: "PUT",
@@ -206,13 +297,14 @@ export default {
 
       this.$refs.toastRef.showNotificationMessage();
     },
-    async postNotes(title,page,description) {
+    async postNotes(title,page,description,quote,character) {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
       params.append("title", title);
       params.append("page", page);
       params.append("description", description);
-
+      params.append("quote", quote);
+      params.append("character", character);  
       try {
         const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
           method: "POST",

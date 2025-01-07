@@ -241,6 +241,7 @@
             method: 'PUT',
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
+              "ngrok-skip-browser-warning": "anyValue",
               "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
             },
           });
@@ -265,6 +266,7 @@
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        "ngrok-skip-browser-warning": "anyValue",
         "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
       },
     });

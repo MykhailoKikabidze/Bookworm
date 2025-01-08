@@ -101,7 +101,7 @@ export default {
             await this.downloadImage(book.title);
           }
 
-          toastRef.message = `Books and images downloaded successfully!`;
+         
           toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
@@ -138,7 +138,7 @@ export default {
           // Store the image URL
           this.downloadedImageUrls.push(url);
 
-          toastRef.message = `Successfully downloaded image for "${title}"`;
+         
           toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();

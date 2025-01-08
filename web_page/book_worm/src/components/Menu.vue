@@ -41,14 +41,18 @@
     </header>
 
     <section v-if="$route.name === 'Home'" class="banner">
-      <div class="banner-content">
-        <h1>{{ displayedText.split(',').join(',\n') }}</h1>
-        <div class="search-bar">
-          <input type="text" v-model="searchQuery" placeholder="Search for books..." />
-          <button @click="performSearch">Search</button>
-        </div>
+    <div class="banner-content">
+      <h1>{{ displayedText.split(',').join(',\n') }}</h1>
+      <div class="search-bar">
+        <input type="text" v-model="searchQuery" placeholder="Search for books..." />
+        <button @click="performSearch">Search</button>
       </div>
-    </section>
+      <!-- Komunikat o błędzie -->
+      <div v-if="searchError" class="custom-alert">
+        <span>Please enter a search query.</span>
+      </div>
+    </div>
+  </section>
     <Toast ref="toastRef" />
   </div>
 </template>
@@ -73,6 +77,8 @@ export default {
       confirmPassword: '',
       passwordVisible: false,
       newUsername: '',
+      searchQuery: '',
+      searchError: false, // Flaga do pokazania komunikatu błędu
     };
   },
   created() {
@@ -234,7 +240,16 @@ export default {
   
 
     performSearch() {
-      console.log(`Searching for: ${this.searchQuery}`);
+      if (this.searchQuery.trim() === '') {
+        this.searchError = true;
+        // Po 3 sekundach ukrywamy komunikat
+        setTimeout(() => {
+          this.searchError = false;
+        }, 3000);
+      } else {
+        this.$router.push({ name: 'Search', query: { query: this.searchQuery } });
+        this.searchError = false; // Ukryj komunikat po prawidłowym wyszukaniu
+      }
     },
 
     toggleLogin() {
@@ -294,6 +309,24 @@ export default {
 
 
 <style>
+.custom-alert {
+  background-color: #d7d7d7af;
+  color: #393939;
+  padding: 15px;
+  margin-top: 20px;
+  border: 1px solid #ffffff;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.custom-alert span {
+  margin-right: 10px;
+}
+
 /* Reset */
 * {
   margin: 0;

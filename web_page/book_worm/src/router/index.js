@@ -16,6 +16,7 @@ import AddBooks from '../components/Add.vue'; // Import AddBooks component
 import AddAuthor from '../components/AddAuthor.vue'; // Import AddAuthor component
 import Add from '../components/Add.vue'; // Importuj komponent Add.vue
 import BookDetailsPage from '../components/BookDetailsPage.vue'; // Import BookDetailsPage component
+import Search from '../components/search.vue'; // Zaimportuj Search.vue
 
 const routes = [
   { path: '/', name: 'Home', component: FirstPage },
@@ -38,6 +39,7 @@ const routes = [
     name: 'BookDetails',
     component: BookDetailsPage,
   },
+  { path: '/search', name: 'Search', component: Search }, // Dodaj trasę do search.vue
   
   
 ];

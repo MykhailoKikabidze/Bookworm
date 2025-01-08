@@ -1,7 +1,11 @@
 <template>
-  
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
   <div class="book-info">
-    <h1 class="book-title">{{ book.title }}</h1>
+  <h1 class="book-title">{{ book.title }}</h1>
+
+  
+
   <div class="info-item">
     <div class="info-title">Description:</div>
     <div class="info-content">{{ book.description || "No description available." }}</div>
@@ -48,6 +52,8 @@
   </div>
 </div>
 
+
+
   
   <div class="image-list" v-if="displayImages">
     <div v-for="(imageUrl, index) in downloadedImageUrls" :key="index" class="image-item">
@@ -64,6 +70,27 @@
 
 <header class="header">
 <h1>Book Reader</h1>
+<div class="actions">
+    <!-- Dropdown to Select Group -->
+    <div class="select-group-container">
+      <select v-model="selectedGroup" class="group-select">
+        <option value="is_favourite">Favourite</option>
+        <option value="want_to_read">Want to Read</option>
+        <option value="now_reading">Now Reading</option>
+        <option value="have_read">Have Read</option>
+      </select>
+    </div>
+
+    <!-- Button to Delete Group -->
+    <button @click="deleteGroups(book.title)" class="action-button delete-button">
+      Remove from Group
+    </button>
+
+    <!-- Button to Add Book to Group -->
+    <button @click="postGroups(book.title)" class="action-button add-to-group-button">
+      Add to Group
+    </button>
+  </div>
 <button @click="downloadBookFile(this.book.title)">Download EPUB</button>
 </header>
 
@@ -117,7 +144,38 @@
   </li>
 </ul>
 </div>
+<div class="note-form-container">
+    <button @click="toggleForm" class="toggle-button">
+      Add a New Note
+    </button>
 
+    <div v-if="isFormVisible" class="note-form">
+      <h2 class="form-title">Add Note</h2>
+      <form @submit.prevent="submitNote">
+        <div class="input-group">
+          <label for="title" class="form-label">Title</label>
+          <input type="text" v-model="title" id="title" placeholder="Title" required class="form-input" />
+        </div>
+        <div class="input-group">
+          <label for="page" class="form-label">Page</label>
+          <input type="number" v-model="page" id="page" placeholder="Page" required class="form-input" />
+        </div>
+        <div class="input-group">
+          <label for="description" class="form-label">Description</label>
+          <textarea v-model="description" id="description" placeholder="Description" required class="form-textarea"></textarea>
+        </div>
+        <div class="input-group">
+          <label for="quote" class="form-label">Quote (optional)</label>
+          <input type="text" v-model="quote" id="quote" placeholder="Quote" class="form-input" />
+        </div>
+        <div class="input-group">
+          <label for="character" class="form-label">Character (optional)</label>
+          <input type="number" v-model="character" id="character" placeholder="Character" class="form-input" />
+        </div>
+        <button type="submit" class="submit-button">Submit</button>
+      </form>
+    </div>
+  </div>
 </div>
 <Toast ref="toastRef" />
 
@@ -131,6 +189,17 @@ import Toast from './Toast.vue';
 export default {
 data() {
 return {
+  isFormVisible: false,
+  title: '',
+      page: '',
+      description: '',
+      quote: '',
+      character: '',
+   isFavourite: false,
+      wantToRead:false,
+      nowReading: true,
+      haveRead: false,
+      selectedGroup: 'want_to_read', 
 book: null, // EPUB.js book instance
 rendition: null, // EPUB.js rendition instance
 currentPage: 1, // Current page number
@@ -150,14 +219,16 @@ spineItems: [],         // Store the spine items for navigation
 bookUrl: null,   
 hz: [], // Store the notes fetched from backend
 currentDescription: "",
+
 };
 },
 components: {
 Toast,
 
 },
+
 mounted() { // If book title is available from the route parameters
-this.book = this.book || { title: this.$route.params.title || "Unknown Title" };
+  this.book = this.book || { title: this.$route.params.title || "Unknown Title" };
 console.log("Loaded book title from route:", this.book.title);
 
 // Fetch book information (authors, genres, and themes) based on the title
@@ -169,7 +240,224 @@ this.getThemes(this.book.title);    // To get themes
 }
 },
 
+
 methods: {
+  toggleForm() {
+      this.isFormVisible = !this.isFormVisible;
+    },
+    submitNote() {
+      // Submit logic
+      this.postNotes(this.title, this.page, this.description, this.quote, this.character);
+    },
+  handleImageUpload(event) {
+  this.selectedImage = event.target.files[0];
+},
+  async postNotes(title, page, description, quote, character) {
+   
+
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
+      params.append("page", page);
+      params.append("description", description);
+      params.append("quote", quote);
+      params.append("character", character);  
+
+      try {
+        const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+            "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+  const data = await response.json();
+  toastRef.message = `Successfully submitted note for "${title}"`;
+  toastRef.notificationClass = "success-toast";
+} else {
+  const errorData = await response.json();
+  console.error('Error response:', errorData);  // Logowanie odpowiedzi błędu
+  toastRef.message = `Error submitting note for "${title}": ${errorData.detail || "Unknown error"}`;
+  toastRef.notificationClass = "error-toast";
+}
+
+      } catch (error) {
+        console.error(`Error submitting note for "${title}":`, error);
+        toastRef.message = `Network error. Could not submit note for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },
+
+    submitNote() {
+      this.postNotes(this.title, this.page, this.description, this.quote, this.character);
+    },
+  async putGroups(title) {
+  const toastRef = this.$refs.toastRef; // Reference for notifications
+
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
+
+    // Create the JSON object for the request body
+    const requestBody = {
+      is_favourite: false,
+      want_to_read: false,
+      now_reading: true,
+      have_read: false
+    };
+
+    // Execute the POST request with JSON body
+    const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+        "Content-Type": "application/json", // Set content type to JSON
+      },
+      body: JSON.stringify(requestBody), // Use JSON.stringify to send the body as JSON
+    });
+
+    // Handle response
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
+      toastRef.notificationClass = "error-toast";
+      this.$refs.toastRef.showNotificationMessage();
+      return;
+    }
+
+    const result = await response.json();
+    toastRef.message = "The book has been successfully added!";
+    toastRef.notificationClass = "success-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    console.log(result);
+  } catch (error) {
+    console.error("Error:", error);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+  }
+}
+,
+
+async deleteGroups(title) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
+
+      try {
+        const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+          method: "DELETE",
+          headers: {
+                    "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+                    "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();          
+          
+          toastRef.message = `Book was deleted`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },
+async getGroups(title) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
+
+      try {
+        const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+          method: "GET",
+          headers: {
+                    "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+
+                    "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();          
+          this.hz = data;
+
+          toastRef.message = `Successfull"${data.have_read}`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },  
+    async postGroups(title) {
+  const toastRef = this.$refs.toastRef; // Reference for notifications
+
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
+
+    // Create the JSON object for the request body
+    const requestBody = {
+      is_favourite: false,
+      want_to_read: false,
+      now_reading: true,
+      have_read: false
+    };
+
+    // Execute the POST request with JSON body
+    const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+        "Content-Type": "application/json", // Set content type to JSON
+      },
+      body: JSON.stringify(requestBody), // Use JSON.stringify to send the body as JSON
+    });
+
+    // Handle response
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
+      toastRef.notificationClass = "error-toast";
+      this.$refs.toastRef.showNotificationMessage();
+      return;
+    }
+
+    const result = await response.json();
+    toastRef.message = "The book has been successfully added!";
+    toastRef.notificationClass = "success-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    console.log(result);
+  } catch (error) {
+    console.error("Error:", error);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+  }
+}
+,
 async getGenres(title) {
 const toastRef = this.$refs.toastRef;
 const params = new URLSearchParams();
@@ -184,7 +472,7 @@ headers: { "ngrok-skip-browser-warning": "anyValue" },
 if (response.ok) {
 const data = await response.json();
 this.book.genres = Array.isArray(data) ? data : [];
-toastRef.message = `Successfully fetched genres for "${title}"`;
+
 toastRef.notificationClass = "success-toast";
 } else {
 const errorData = await response.json();
@@ -214,7 +502,7 @@ headers: { "ngrok-skip-browser-warning": "anyValue" },
 if (response.ok) {
 const data = await response.json();
 this.book.authors = Array.isArray(data) ? data : [];
-toastRef.message = `Successfully fetched authors for "${title}"`;
+
 toastRef.notificationClass = "success-toast";
 } else {
 const errorData = await response.json();
@@ -256,7 +544,7 @@ if (response.ok) {
     cover: data.cover_url || 'placeholder-image.jpg',
   };
 
-  toastRef.message = `Successfully fetched details for "${title}"`;
+
   toastRef.notificationClass = "success-toast";
 } else {
   const errorData = await response.json();
@@ -289,7 +577,7 @@ if (response.ok) {
   const data = await response.json();
   this.book.themes = Array.isArray(data) ? data : [];
 
-  toastRef.message = `Successfully fetched themes for "${title}"`;
+
   toastRef.notificationClass = "success-toast";
 } else {
   const errorData = await response.json();
@@ -350,6 +638,7 @@ params: { title: book.title },
 query: { imageUrl: this.downloadedImageUrls[this.books.indexOf(book)] } // Pass the image URL as a query
 });
 },
+
 highlightSelection() {
 if (!this.book || !this.rendition) {
 alert("Book or rendition not ready.");
@@ -395,41 +684,6 @@ this.postNotes(bookTitle, this.currentPage, this.currentDescription);
 alert("No text highlighted or book title missing.");
 }
 },
-
-async postNotes(title, page, description,quote,character) {
-const toastRef = this.$refs.toastRef;
-const params = new URLSearchParams();
-params.append("title", title);
-params.append("page", page);
-params.append("description", description);
-params.append("quote", quote);
-params.append("character", character);
-
-try {
-const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
-method: "POST",
-headers: {
-  "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
-},
-});
-
-if (response.ok) {
-toastRef.message = `Successfully added highlight for "${title}".`;
-toastRef.notificationClass = "success-toast";
-} else {
-const errorData = await response.json();
-toastRef.message = `Error adding highlight: ${errorData.detail || "Unknown error"}`;
-toastRef.notificationClass = "error-toast";
-}
-} catch (error) {
-console.error(`Error adding highlight:`, error);
-toastRef.message = `Network error. Could not add highlight for "${title}". ${error.message}`;
-toastRef.notificationClass = "error-toast";
-}
-
-this.$refs.toastRef.showNotificationMessage();
-},
-
 
 async getNotes(title) {
 const params = new URLSearchParams();
@@ -621,6 +875,171 @@ this.displayImages = true;
 </script>
 
 <style>
+.note-form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+}
+
+.toggle-button {
+  padding: 10px;
+  font-size: 14px;
+  background-color: #072d098f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-button:hover {
+  background-color: #45a049;
+}
+
+.note-form {
+  background-color: #f8f8f8;
+  padding: 20px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 400px;
+  margin-top: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form-title {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.input-group {
+  margin-bottom: 15px;
+}
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+.form-textarea {
+  resize: vertical;
+  height: 100px;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.submit-button:hover {
+  background-color: #45a049;
+}
+.book-info {
+  margin-top: 20px;
+  font-family: 'Georgia', serif;
+}
+
+.book-title {
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem; /* Mniejsze rozmiary czcionki */
+  margin-top: 10px;
+}
+
+.select-group-container {
+  max-width: 150px;
+}
+
+.group-select {
+  width: 100%;
+  padding: 6px;
+  font-size: 0.9rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+.action-button {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border-radius: 5px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  transition: all 0.3s ease;
+}
+
+.add-to-group-button {
+  background-color: #8B4513; /* Ciepły brąz */
+  color: white;
+  border: none;
+}
+
+.add-to-group-button:hover {
+  background-color: #6b3e29;
+}
+
+.delete-button {
+  background-color: #d9534f; /* Subtelna czerwień */
+  color: white;
+  border: none;
+}
+
+.delete-button:hover {
+  background-color: #c0392b;
+}
+
+.info-item {
+  margin-top: 10px;
+}
+
+.info-title {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #333;
+}
+
+.info-content {
+  font-size: 0.95rem;
+  color: #666;
+}
+
+
 .book-info {
   background-color: #fff;
   padding: 20px;

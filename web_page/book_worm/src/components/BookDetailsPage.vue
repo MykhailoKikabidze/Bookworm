@@ -234,6 +234,7 @@ methods: {
   handleImageUpload(event) {
   this.selectedImage = event.target.files[0];
 },
+
 async sendEpubContentToBackend() {
     try {
       if (!this.book) {
@@ -303,22 +304,21 @@ async sendEpubContentToBackend() {
 
         if (response.ok) {
   const data = await response.json();
-  toastRef.message = `Successfully submitted note for "${title}"`;
-  toastRef.notificationClass = "success-toast";
 } else {
   const errorData = await response.json();
   console.error('Error response:', errorData);  // Logowanie odpowiedzi błędu
   toastRef.message = `Error submitting note for "${title}": ${errorData.detail || "Unknown error"}`;
   toastRef.notificationClass = "error-toast";
+  this.$refs.toastRef.showNotificationMessage();
 }
 
       } catch (error) {
         console.error(`Error submitting note for "${title}":`, error);
         toastRef.message = `Network error. Could not submit note for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
       }
 
-      this.$refs.toastRef.showNotificationMessage();
     },
 
     submitNote() {
@@ -360,9 +360,6 @@ async sendEpubContentToBackend() {
     }
 
     const result = await response.json();
-    toastRef.message = "The book has been successfully added!";
-    toastRef.notificationClass = "success-toast";
-    this.$refs.toastRef.showNotificationMessage();
     console.log(result);
   } catch (error) {
     console.error("Error:", error);
@@ -390,20 +387,18 @@ async deleteGroups(title) {
         if (response.ok) {
           const data = await response.json();          
           
-          toastRef.message = `Book was deleted`;
-          toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
           toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
         }
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
       }
-
-      this.$refs.toastRef.showNotificationMessage();
     },
 async getGroups(title) {
       const toastRef = this.$refs.toastRef;
@@ -423,21 +418,20 @@ async getGroups(title) {
         if (response.ok) {
           const data = await response.json();          
           this.hz = data;
-
-          toastRef.message = `Successfull"${data.have_read}`;
-          toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
           toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
+
         }
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
       }
 
-      this.$refs.toastRef.showNotificationMessage();
     },  
     async postGroups(title) {
   const toastRef = this.$refs.toastRef; // Reference for notifications
@@ -475,9 +469,6 @@ async getGroups(title) {
     }
 
     const result = await response.json();
-    toastRef.message = "The book has been successfully added!";
-    toastRef.notificationClass = "success-toast";
-    this.$refs.toastRef.showNotificationMessage();
     console.log(result);
   } catch (error) {
     console.error("Error:", error);
@@ -502,19 +493,21 @@ if (response.ok) {
 const data = await response.json();
 this.book.genres = Array.isArray(data) ? data : [];
 
-toastRef.notificationClass = "success-toast";
 } else {
 const errorData = await response.json();
 toastRef.message = `Error fetching genres for "${title}": ${errorData.detail || "Unknown error"}`;
 toastRef.notificationClass = "error-toast";
+this.$refs.toastRef.showNotificationMessage();
+
 }
 } catch (error) {
 console.error(`Error fetching genres for "${title}":`, error);
 toastRef.message = `Network error. Could not fetch genres for "${title}". ${error.message}`;
 toastRef.notificationClass = "error-toast";
+this.$refs.toastRef.showNotificationMessage();
+
 }
 
-this.$refs.toastRef.showNotificationMessage();
 },
 
 async getAuthors(title) {
@@ -532,19 +525,21 @@ if (response.ok) {
 const data = await response.json();
 this.book.authors = Array.isArray(data) ? data : [];
 
-toastRef.notificationClass = "success-toast";
 } else {
 const errorData = await response.json();
 toastRef.message = `Error fetching authors for "${title}": ${errorData.detail || "Unknown error"}`;
 toastRef.notificationClass = "error-toast";
+this.$refs.toastRef.showNotificationMessage();
+
 }
 } catch (error) {
 console.error(`Error fetching authors for "${title}":`, error);
 toastRef.message = `Network error. Could not fetch authors for "${title}". ${error.message}`;
 toastRef.notificationClass = "error-toast";
+this.$refs.toastRef.showNotificationMessage();
+
 }
 
-this.$refs.toastRef.showNotificationMessage();
 },
 
 
@@ -573,20 +568,21 @@ if (response.ok) {
     cover: data.cover_url || 'placeholder-image.jpg',
   };
 
-
-  toastRef.notificationClass = "success-toast";
 } else {
   const errorData = await response.json();
   toastRef.message = `Error fetching details for "${title}": ${errorData.detail || "Unknown error"}`;
   toastRef.notificationClass = "error-toast";
+  this.$refs.toastRef.showNotificationMessage();
+
 }
 } catch (error) {
 console.error(`Error fetching details for "${title}":`, error);
 toastRef.message = `Network error. Could not fetch details for "${title}". ${error.message}`;
 toastRef.notificationClass = "error-toast";
+this.$refs.toastRef.showNotificationMessage();
+
 }
 
-this.$refs.toastRef.showNotificationMessage();
 },
 
 async getThemes(title) {
@@ -607,19 +603,21 @@ if (response.ok) {
   this.book.themes = Array.isArray(data) ? data : [];
 
 
-  toastRef.notificationClass = "success-toast";
 } else {
   const errorData = await response.json();
   toastRef.message = `Error fetching themes for "${title}": ${errorData.detail || "Unknown error"}`;
   toastRef.notificationClass = "error-toast";
+  this.$refs.toastRef.showNotificationMessage();
+
 }
 } catch (error) {
 console.error(`Error fetching themes for "${title}":`, error);
 toastRef.message = `Network error. Could not fetch themes for "${title}". ${error.message}`;
 toastRef.notificationClass = "error-toast";
+this.$refs.toastRef.showNotificationMessage();
+
 }
 
-this.$refs.toastRef.showNotificationMessage();
 },
 
 async deleteNotes(title, page, description,quote,character) {
@@ -645,20 +643,18 @@ if (response.ok) {
 // Usunięcie notatki z listy
 this.hz = this.hz.filter(note => note.id !== note.id);
 
-toastRef.message = `Note successfully deleted.`;
-toastRef.notificationClass = "success-toast";
 } else {
 const errorData = await response.json();
 toastRef.message = `Error deleting note: ${errorData.detail || "Unknown error"}`;
 toastRef.notificationClass = "error-toast";
+this.$refs.toastRef.showNotificationMessage();
 }
 } catch (error) {
 console.error(`Error deleting note:`, error);
 toastRef.message = `Network error. Could not delete note. ${error.message}`;
 toastRef.notificationClass = "error-toast";
-}
-
 this.$refs.toastRef.showNotificationMessage();
+}
 },
 viewBookDetails(book) {
 this.$router.push({
@@ -766,21 +762,19 @@ async getNotes(title) {
           this.hz = Array.isArray(data) ? data : [];
 
           this.applyHighlights();
-
-          toastRef.message = `Successfull"`;
-          toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
           toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
         }
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
       }
 
-      this.$refs.toastRef.showNotificationMessage();
     },  
     applyHighlights() {
   if (!this.book || !this.rendition || !this.hz.length) {

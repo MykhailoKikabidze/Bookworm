@@ -5,7 +5,7 @@
     <button @click="getCheckpoints('Coraline')">getCheckpoints</button>
     <button @click="deleteNotes('Coraline',5,'description','want to make it right',122)">deleteNotes</button>
     <button @click="getGroups('Coraline')">getGroups</button>
-    <button @click="postGroups('test')">postGroups</button>
+    <button @click="getNotes('test')">get</button>
     <button @click="deleteGroups('test')">deleteGroups</button>
     <button @click="putGroups('Coraline')">putGroups</button>
     <button @click="getBooksFilter('admin@admin.admin')">filter</button>
@@ -364,21 +364,21 @@ async postGroups(title) {
         if (response.ok) {
           const data = await response.json();          
           this.hz = Array.isArray(data) ? data : [];
-
-          toastRef.message = `Successfull"`;
-          toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
           toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
+
         }
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+
       }
 
-      this.$refs.toastRef.showNotificationMessage();
     },  
       async deleteNotes(title,page,description,quote,character) {
       const toastRef = this.$refs.toastRef;

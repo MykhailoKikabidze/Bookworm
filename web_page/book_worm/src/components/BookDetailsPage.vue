@@ -109,8 +109,18 @@
 
 <button @click="goNext" :disabled="currentPage >= totalPages">Next</button>
 <button @click="handleHighlightAndPost" :disabled="!book">Add Highlight</button>
-<input type="color" v-model="selectedColor" title="Choose Highlight Color" />
-</div>
+    <input type="color" v-model="selectedColor" title="Choose Highlight Color" />
+
+    <!-- Mini window for writing description -->
+    <div v-if="showDescriptionModal" class="modal">
+      <div class="modal-content">
+        <h3>Add a Description</h3>
+        <textarea v-model="userDescription" placeholder="Write your description here..."></textarea>
+        <button @click="saveHighlightAndDescription">Save</button>
+        <button @click="closeModal">Cancel</button>
+      </div>
+    </div>
+  </div>
 
 <!-- Bookmarks Section -->
 <div class="bookmarks" v-if="bookmarks.length">
@@ -134,48 +144,17 @@
 </div>
 
 <!-- Notes Section -->
-<button @click="getNotes(this.book.title)" class="get-notes-button">Show all my Notes</button>
+<button @click="getNotes('Coraline')" class="get-notes-button">Show all my Notes</button>
 <div v-if="hz.length > 0">
 <h3>Notes for {{ this.book.title || 'Unknown Book' }}:</h3>
 <ul class="notes-list">
   <li v-for="note in hz" :key="note.id" class="note-item">
-    <strong>Page {{ note.page }}:</strong> {{ note.description }}
+    <strong>Page {{ note.page }}:</strong> {{ note.description }} {{ note.character }}
     <button @click="deleteNotes(this.book.title, note.page, note.description)" class="delete-note-button">Delete Note</button>
   </li>
 </ul>
 </div>
-<div class="note-form-container">
-    <button @click="toggleForm" class="toggle-button">
-      Add a New Note
-    </button>
 
-    <div v-if="isFormVisible" class="note-form">
-      <h2 class="form-title">Add Note</h2>
-      <form @submit.prevent="submitNote">
-        <div class="input-group">
-          <label for="title" class="form-label">Title</label>
-          <input type="text" v-model="title" id="title" placeholder="Title" required class="form-input" />
-        </div>
-        <div class="input-group">
-          <label for="page" class="form-label">Page</label>
-          <input type="number" v-model="page" id="page" placeholder="Page" required class="form-input" />
-        </div>
-        <div class="input-group">
-          <label for="description" class="form-label">Description</label>
-          <textarea v-model="description" id="description" placeholder="Description" required class="form-textarea"></textarea>
-        </div>
-        <div class="input-group">
-          <label for="quote" class="form-label">Quote (optional)</label>
-          <input type="text" v-model="quote" id="quote" placeholder="Quote" class="form-input" />
-        </div>
-        <div class="input-group">
-          <label for="character" class="form-label">Character (optional)</label>
-          <input type="number" v-model="character" id="character" placeholder="Character" class="form-input" />
-        </div>
-        <button type="submit" class="submit-button">Submit</button>
-      </form>
-    </div>
-  </div>
 </div>
 <Toast ref="toastRef" />
 
@@ -189,6 +168,7 @@ import Toast from './Toast.vue';
 export default {
 data() {
 return {
+  
   isFormVisible: false,
   title: '',
       page: '',
@@ -219,6 +199,8 @@ spineItems: [],         // Store the spine items for navigation
 bookUrl: null,   
 hz: [], // Store the notes fetched from backend
 currentDescription: "",
+userDescription: "",
+showDescriptionModal: false,
 
 };
 },
@@ -252,6 +234,53 @@ methods: {
   handleImageUpload(event) {
   this.selectedImage = event.target.files[0];
 },
+async sendEpubContentToBackend() {
+    try {
+      if (!this.book) {
+        console.error("Book is not loaded");
+        return;
+      }
+
+      const spine = await this.book.loaded.spine; // Get spine items (chapters/sections)
+      const chapters = spine.items; // All sections in the book
+      
+      for (let i = 0; i < chapters.length; i++) {
+        const chapter = chapters[i];
+        const chapterContent = await chapter.load(this.book.load.bind(this.book)); // Load the content
+        const parsedContent = new DOMParser().parseFromString(chapterContent, "text/html"); // Parse HTML
+
+        // Extract text content
+        const textContent = parsedContent.body.textContent || "";
+
+        // Split text into sentences for easier management
+        const sentences = textContent.split(/\.\s+/);
+
+        for (let j = 0; j < sentences.length; j++) {
+          const description = sentences[j].trim(); // Description (sentence-level text)
+
+          if (description) {
+            // Prepare data to send to backend
+            const page = this.book.locations.locationFromCfi(chapter.cfiBase) + j; // Approximate page number
+            const title = this.book.title || "Untitled"; // Book title
+            const quote = description.length > 30 ? description.substring(0, 30) + "..." : description; // Optional short quote
+            const character = description.length; // Optional: character count
+
+            // Send note to backend
+            await this.postNotes(title, page, description, quote, character);
+          }
+        }
+
+        // Unload chapter content to free memory
+        chapter.unload();
+      }
+
+      alert("EPUB content has been sent to the backend successfully!");
+
+    } catch (error) {
+      console.error("Error processing EPUB content:", error);
+      alert("An error occurred while sending EPUB content to the backend. Check console for details.");
+    }
+  },
   async postNotes(title, page, description, quote, character) {
    
 
@@ -639,76 +668,188 @@ query: { imageUrl: this.downloadedImageUrls[this.books.indexOf(book)] } // Pass 
 });
 },
 
-highlightSelection() {
-if (!this.book || !this.rendition) {
-alert("Book or rendition not ready.");
-return;
-}
+ highlightSelection() {
+      if (!this.book || !this.rendition) {
+        alert("Book or rendition not ready.");
+        return;
+      }
 
-const iframe = this.$refs.viewer.querySelector("iframe");
-const iframeWindow = iframe.contentWindow;
-const selection = iframeWindow.getSelection();
-const selectedText = selection.toString().trim();
+      const iframe = this.$refs.viewer.querySelector("iframe");
+      const iframeWindow = iframe.contentWindow;
+      const selection = iframeWindow.getSelection();
+      const selectedText = selection.toString().trim();
 
-if (selectedText) {
-const cfi = this.rendition.currentLocation().start.cfi;
-const color = this.selectedColor || "#FFD700";
+      if (selectedText) {
+        const cfi = this.rendition.currentLocation().start.cfi;
+        const color = this.selectedColor || "#FFD700";
 
-this.bookmarks.push({
-page: this.currentPage,
-text: selectedText,
-cfi,
-color,
-});
+        this.currentDescription = selectedText;
 
-this.rendition.annotations.add("highlight", cfi, {
-fill: color,
-fillOpacity: 0.5,
-});
+        this.bookmarks.push({
+          page: this.currentPage,
+          text: selectedText,
+          cfi,
+          color,
+        });
 
-// Update currentDescription for note-saving
-this.currentDescription = selectedText;
+        this.rendition.annotations.add("highlight", cfi, {
+          fill: color,
+          fillOpacity: 0.5,
+        });
 
-alert(`Highlighted: "${selectedText}" on Page ${this.currentPage}`);
-} else {
-alert("Please select text to highlight.");
-}
+        this.showDescriptionModal = true; // Open the modal to write a description
+      } else {
+        alert("Please select text to highlight.");
+      }
+    },
+
+    handleHighlightAndPost() {
+      this.highlightSelection();
+    },
+    saveHighlightAndDescription() {
+  const bookTitle = this.book?.title || this.$route.params.title;
+  if (this.currentDescription && bookTitle) {
+    const iframe = this.$refs.viewer.querySelector("iframe");
+    const iframeWindow = iframe.contentWindow;
+    const selection = iframeWindow.getSelection();
+
+    if (selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const startContainer = range.startContainer;
+      const pageText = iframeWindow.document.body.textContent;
+
+      // Calculate the character offset of the selected text within the page's content
+      const selectedText = range.toString();
+      const startOffsetInPage = pageText.indexOf(selectedText);
+
+      if (startOffsetInPage !== -1) {
+        const cfi = this.rendition.currentLocation().start.cfi;
+        const quote = this.currentDescription;
+        const characterOffset = startOffsetInPage; // This is the precise offset
+
+        // Post the highlight with accurate characterOffset
+        this.postNotes(bookTitle, this.currentPage, this.userDescription, quote, characterOffset);
+
+        // Clear and close the modal
+        this.userDescription = "";
+        this.showDescriptionModal = false;
+        alert(`Saved highlight with description: "${this.userDescription}"`);
+      } else {
+        alert("Failed to locate the selected text on the page.");
+      }
+    } else {
+      alert("No text selected.");
+    }
+  } else {
+    alert("No text highlighted or book title missing.");
+  }
 },
 
-handleHighlightAndPost() {
-this.highlightSelection(); // Dodanie podświetlenia
-const bookTitle = this.book?.title || this.$route.params.title;
-if (this.currentDescription && bookTitle) {
-this.postNotes(bookTitle, this.currentPage, this.currentDescription);
-} else {
-alert("No text highlighted or book title missing.");
-}
-},
 
 async getNotes(title) {
-const params = new URLSearchParams();
-params.append("title", title);
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
 
-try {
-const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
-method: "GET",
-headers: {
-"Authorization": `Bearer ${localStorage.getItem('authToken')}`,
-"ngrok-skip-browser-warning": "anyValue",
-},
-});
+      try {
+        const response = await fetch(`${this.$link_backend}/notes?${params.toString()}`, {
+          method: "GET",
+          headers: {
+                    "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
 
-if (response.ok) {
-const data = await response.json();
-console.log("Fetched notes:", data);
-this.hz = Array.isArray(data) ? data : []; // Przypisanie notatek, jeśli istnieją
-} else {
-console.error(`Error fetching notes for "${title}": ${response.statusText}`);
+                    "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();          
+          this.hz = Array.isArray(data) ? data : [];
+
+          this.applyHighlights();
+
+          toastRef.message = `Successfull"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },  
+    applyHighlights() {
+  if (!this.book || !this.rendition || !this.hz.length) {
+    console.warn("Book, rendition, or highlights are not ready.");
+    return;
+  }
+
+  const iframe = this.$refs.viewer.querySelector("iframe");
+  const iframeWindow = iframe.contentWindow;
+
+  // Loop through each note and apply highlights
+  this.hz.forEach((note) => {
+    const { page, quote, character } = note;
+
+    // Display the correct page in the eBook
+    this.rendition.display(page).then(() => {
+      const iframeDoc = iframeWindow.document;
+      const pageText = iframeDoc.body.textContent;
+
+      // Locate the starting position of the quote using the character offset
+      const startOffsetInPage = parseInt(character, 10); // Convert character to integer
+
+      if (isNaN(startOffsetInPage)) {
+        console.error(`Invalid character offset: ${character}`);
+        return;
+      }
+
+      // Find the quote in the page text
+      const endOffsetInPage = startOffsetInPage + quote.length;
+      const range = iframeWindow.document.createRange();
+      const selection = iframeWindow.getSelection();
+
+      let currentNode = iframeDoc.body.firstChild;
+      let offset = 0;
+
+      // Traverse the document's text nodes until we find the start and end of the quote
+      while (currentNode && offset < startOffsetInPage) {
+        offset += currentNode.textContent.length;
+        currentNode = currentNode.nextSibling;
+      }
+
+      if (currentNode) {
+        const startOffset = startOffsetInPage - offset;
+        const endOffset = startOffset + quote.length;
+
+        // Set the range to highlight the quote
+        range.setStart(currentNode, startOffset);
+        range.setEnd(currentNode, endOffset);
+
+        // Create a span to wrap the quote with a highlight
+        const span = iframeWindow.document.createElement("span");
+        span.style.backgroundColor = "#FFD700"; // Default yellow color
+        span.style.padding = "0 2px";
+        span.className = "custom-highlight";
+        span.textContent = quote;
+
+        // Insert the span in place of the quoted text
+        range.deleteContents();
+        range.insertNode(span);
+
+        // Clear the selection after applying the highlight
+        selection.removeAllRanges();
+      } else {
+        console.warn(`Quote not found on page ${page}: "${quote}"`);
+      }
+    });
+  });
 }
-} catch (error) {
-console.error(`Error fetching notes for "${title}":`, error);
-}
-},
+,
 async loadEpub(blob) {
 try {
 const reader = new FileReader();
@@ -875,6 +1016,36 @@ this.displayImages = true;
 </script>
 
 <style>
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+textarea {
+  width: 100%;
+  height: 100px;
+  margin-bottom: 10px;
+}
+
+button {
+  margin-right: 10px;
+}
 .note-form-container {
   display: flex;
   flex-direction: column;

@@ -45,6 +45,7 @@ from notes.crud import (
     search_group,
     delete_group,
 )
+from utils import filter_book
 import uvicorn
 import asyncio
 import json
@@ -465,7 +466,7 @@ async def remove_book(
 @app.post("/checkpoints", tags=["notes"], response_model=dict)
 async def add_checkpoint(
     title: str,
-    page: int,
+    cfi: str,
     db: AsyncSession = Depends(get_db_session),
     curr_user: models.UsersModel = Depends(get_current_user),
 ):
@@ -474,7 +475,7 @@ async def add_checkpoint(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Book is not founded"
         )
-    res = await new_checkpoint(db, book, curr_user, page)
+    res = await new_checkpoint(db, book, curr_user, cfi)
     if res:
         return {"status": 200}
     return {"status": 400}
@@ -516,7 +517,7 @@ async def create_note(
     page: int,
     description: str,
     quote: str,
-    character: int,
+    character: str,
     db: AsyncSession = Depends(get_db_session),
     curr_user: models.UsersModel = Depends(get_current_user),
 ):
@@ -543,7 +544,7 @@ async def change_note(
     description: str,
     new_description: str,
     quote: str,
-    character: int,
+    character: str,
     db: AsyncSession = Depends(get_db_session),
     curr_user: models.UsersModel = Depends(get_current_user),
 ):
@@ -572,7 +573,7 @@ async def remove_note(
     page: int,
     description: str,
     quote: str,
-    character: int,
+    character: str,
     db: AsyncSession = Depends(get_db_session),
     curr_user: models.UsersModel = Depends(get_current_user),
 ):
@@ -696,3 +697,27 @@ async def remove_group(
         )
 
     return {"status": 200}
+
+
+@app.get("/filter/books", tags=["filter"], response_model=list[BookScheme])
+async def filter_advanced(
+    authors: list[str] | None = None,
+    themes: list[str] | None = None,
+    genres: list[str] | None = None,
+    group_props: dict | None = None,
+    email: str | None = None,
+    db: AsyncSession = Depends(get_db_session),
+):
+    user_id = None
+
+    if email:
+        user = await get_user(db, email)
+        if user:
+            user_id = user.id
+
+    result = await filter_book(db, authors, themes, genres, group_props, user_id)
+
+    if isinstance(result, HTTPException):
+        raise result
+
+    return result

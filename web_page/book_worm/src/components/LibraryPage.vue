@@ -102,19 +102,21 @@ export default {
           }
 
          
-          toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
           toastRef.message = "Error fetching books: " + (errorData.detail || "Unknown error");
           toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
+
         }
       } catch (error) {
         console.error("Error fetching book data:", error);
         toastRef.message = "Network error. Please try again. " + error.message;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+
       }
 
-      this.$refs.toastRef.showNotificationMessage();
     },
 
     async downloadImage(title) {
@@ -139,19 +141,21 @@ export default {
           this.downloadedImageUrls.push(url);
 
          
-          toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
           toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
+
         }
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+
       }
 
-      this.$refs.toastRef.showNotificationMessage();
     },
   },
 };

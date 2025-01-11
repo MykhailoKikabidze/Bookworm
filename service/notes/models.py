@@ -11,7 +11,7 @@ class CheckpointModel(Base):
     id_book = Column(
         Integer, ForeignKey("books.id", ondelete="CASCADE"), primary_key=True
     )
-    page = Column(Integer)
+    cfi = Column(String)
 
 
 class NoteModel(Base):
@@ -23,7 +23,7 @@ class NoteModel(Base):
     page = Column(Integer, index=True)
     description = Column(String)
     quote = Column(String)
-    character = Column(Integer)
+    character = Column(String)
 
 
 class GroupModel(Base):

@@ -5,7 +5,7 @@ class NoteSchema(BaseModel):
     page: int
     description: str
     quote: str
-    character: int
+    character: str
 
 
 class GroupSchema(BaseModel):

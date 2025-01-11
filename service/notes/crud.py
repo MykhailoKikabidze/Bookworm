@@ -8,7 +8,7 @@ from notes.schemas import GroupSchema
 
 
 async def new_checkpoint(
-    db: AsyncSession, book: BookModel, user: UsersModel, page: int
+    db: AsyncSession, book: BookModel, user: UsersModel, cfi: str
 ) -> bool:
 
     await db.merge(book)
@@ -23,13 +23,13 @@ async def new_checkpoint(
     checkpoint = checkpoint.scalars().first()
 
     if not checkpoint:
-        checkpoint = CheckpointModel(id_user=user.id, id_book=book.id, page=page)
+        checkpoint = CheckpointModel(id_user=user.id, id_book=book.id, cfi=cfi)
         db.add(checkpoint)
         await db.commit()
 
         return True
 
-    checkpoint.page = page
+    checkpoint.cfi = cfi
     db.add(checkpoint)
     await db.commit()
 
@@ -52,7 +52,7 @@ async def show_checkpoint(db: AsyncSession, book: BookModel, user: UsersModel) -
     if not checkpoint:
         return 0
 
-    return checkpoint.page
+    return checkpoint.cfi
 
 
 async def search_note(
@@ -62,7 +62,7 @@ async def search_note(
     page: int,
     description: str,
     quote: str,
-    character: int,
+    character: str,
 ) -> NoteModel:
     await db.merge(book)
     await db.merge(user)
@@ -90,7 +90,7 @@ async def add_note(
     page: int,
     description: str,
     quote: str,
-    character: int,
+    character: str,
 ) -> bool:
     await db.merge(book)
     await db.merge(user)
@@ -123,7 +123,7 @@ async def update_note(
     description: str,
     new_description: str,
     quote: str,
-    character: int,
+    character: str,
 ) -> bool:
     note = await search_note(db, book, user, page, description, quote, character)
     note_check = await search_note(
@@ -151,7 +151,7 @@ async def delete_note(
     page: int,
     description: str,
     quote: str,
-    character: int,
+    character: str,
 ):
     note = await search_note(db, book, user, page, description, quote, character)
 

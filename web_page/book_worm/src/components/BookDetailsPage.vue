@@ -104,7 +104,7 @@
     <!-- Toolbar -->
     <div class="footer-toolbar">
       <button @click="goPrevious" :disabled="currentPage <= 0">Previous</button>
-      <span>Page {{ currentPage }} of {{ totalPages }}</span>
+      <span>Page {{ currentPage+1 }} of {{ totalPages }}</span>
       <div></div>
 
       <button @click="goNext" :disabled="currentPage >= totalPages">Next</button>
@@ -183,11 +183,12 @@ export default {
       haveRead: false,
       selectedGroup: 'want_to_read', 
 
+
+      currentPage: -1,
       checkPointPage: 0,
       book: null, // EPUB.js book instance
       epubBook: null,
       rendition: null, // EPUB.js rendition instance
-      currentPage: 1, // Current page number
       totalPages: 0, // Total pages
       bookmarks: [], // List of bookmarks {page, text, cfi, color}
       selectedColor: "#ffd966", // Default highlight color
@@ -288,20 +289,21 @@ export default {
         if (response.ok) {
           const data = await response.json();          
           this.checkPointPage= data;
-          toastRef.message = `Successfull"`;
-          toastRef.notificationClass = "success-toast";
         } else {
           const errorData = await response.json();
           toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
+
         }
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+
       }
 
-      this.$refs.toastRef.showNotificationMessage();
     },  
     async sendEpubContentToBackend() {
       try {
@@ -967,10 +969,11 @@ async postCheckpoint(title, cfi) {
           return;
         }
 
+        const page=this.currentPage+1;
         // Отправляем на бэкенд
         this.postNotes(
           bookTitle,
-          this.currentPage,
+          page,
           this.userDescription, // Описание от пользователя
           quote,
           cfiRange // cfiRange вместо старого "characterOffset"
@@ -1138,22 +1141,23 @@ async postcheckpoints(title,page) {
           },
         });
 
-        if (response.ok) {
-
-          toastRef.message = `Successfull"`;
-          toastRef.notificationClass = "success-toast";
-        } else {
+        if (!response.ok) {
           const errorData = await response.json();
           toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
+        }
+        else{
+          const data =await response.json();
         }
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+
       }
 
-      this.$refs.toastRef.showNotificationMessage();
     },
 
     async goPrevious() {

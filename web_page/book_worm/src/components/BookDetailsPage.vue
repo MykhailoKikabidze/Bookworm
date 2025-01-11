@@ -183,6 +183,7 @@ export default {
       haveRead: false,
       selectedGroup: 'want_to_read', 
 
+      checkPointPage: 0,
       book: null, // EPUB.js book instance
       epubBook: null,
       rendition: null, // EPUB.js rendition instance
@@ -238,10 +239,70 @@ export default {
       this.postNotes(this.title, this.page, this.description, this.quote, this.character);
     },
 
+    async checkPoint() {
+  if (!this.epubBook || !this.epubBook.locations) {
+    console.error("EPUB book or locations are not loaded yet.");
+    return;
+  }
+
+  try {
+
+    await this.getCheckpoints('Coraline');
+    const pageCfi = this.epubBook.locations.cfiFromLocation(this.checkPointPage);
+
+    if (pageCfi) {
+      // Navigate to the 5th page using the CFI
+      this.rendition.display(pageCfi)
+        .then(() => {
+          console.log("Navigated to the 5th page.");
+        })
+        .catch((error) => {
+          console.error("Error navigating to the 5th page:", error);
+        });
+    } else {
+      console.error("Could not determine the location for the 5th page.");
+    }
+  } catch (error) {
+    console.error("Error navigating to the 5th page:", error);
+  }
+},
+
     handleImageUpload(event) {
       this.selectedImage = event.target.files[0];
     },
 
+    async getCheckpoints(title) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("title", title);
+
+      try {
+        const response = await fetch(`${this.$link_backend}/checkpoints?${params.toString()}`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+            "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();          
+          this.checkPointPage= data;
+          toastRef.message = `Successfull"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },  
     async sendEpubContentToBackend() {
       try {
         if (!this.book) {
@@ -1025,6 +1086,8 @@ async postCheckpoint(title, cfi) {
               const cfi = this.rendition.getRangeCfi(range);
               this.postCheckpoint(this.book.title, cfi);
             });
+            await this.checkPoint();
+
 
             // const savedCfi = await this.getCheckpoint(this.book.title);
             // if (savedCfi) {
@@ -1058,15 +1121,52 @@ async postCheckpoint(title, cfi) {
     console.error("Error loading EPUB:", error);
   }
 },
+async postcheckpoints(title,page) {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
 
+      params.append("title", title);
+      params.append("cfi", page);
 
-    goPrevious() {
+      try {
+        const response = await fetch(`${this.$link_backend}/checkpoints?${params.toString()}`, {
+          method: "POST",
+          headers: {
+            "ngrok-skip-browser-warning": "anyValue",
+            "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+
+          },
+        });
+
+        if (response.ok) {
+
+          toastRef.message = `Successfull"`;
+          toastRef.notificationClass = "success-toast";
+        } else {
+          const errorData = await response.json();
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
+          toastRef.notificationClass = "error-toast";
+        }
+      } catch (error) {
+        console.error(`Error downloading image for "${title}":`, error);
+        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      }
+
+      this.$refs.toastRef.showNotificationMessage();
+    },
+
+    async goPrevious() {
       if (this.rendition) this.rendition.prev();
+      const page=this.currentPage -1;
+      await this.postcheckpoints('Coraline',page.toString());
     },
 
-    goNext() {
+    async goNext() {
       if (this.rendition) this.rendition.next();
-    },
+      const page=this.currentPage +1;
+      await this.postcheckpoints('Coraline',page.toString()); 
+       },
 
     goToBookmark(cfi) {
       // Navigate to the CFI location in the book

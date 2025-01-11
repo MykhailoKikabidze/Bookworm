@@ -1,6 +1,6 @@
 
 <template>
-  
+   <div class="library-container">
  <div class="book-details-container1">
     <!-- Informacje o książce po lewej stronie -->
     <div class="book-info1">
@@ -67,6 +67,8 @@
       </div>
     </div>
   </div>
+</div>
+  
   
   <header class="header">
     <h1>Book Reader</h1>
@@ -1319,6 +1321,21 @@ async downloadImages() {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
 
+.library-container {
+  position: relative;
+  width: 100%; /* Ensure it takes up the full width */
+  height: 100%; /* Make the container take the full screen height */
+  margin: 0;
+  padding: 20px;
+  font-family: 'Roboto', Arial, sans-serif;
+  color: #333;
+  /* Background image with opacity */
+  background-image: url('/src/components/pictures/book3.jpeg');
+  background-size: cover; /* Ensure the background covers the entire container */
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Prevent the image from repeating */
+  opacity: 0.85; /* Apply opacity to the background */
+}
 
 .book-details-container1 {
   display: flex;
@@ -1361,10 +1378,10 @@ async downloadImages() {
 .info-title1 {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #6E4B3A; /* Brązowy kolor tekstu */
+  color: #404040; /* Brązowy kolor tekstu */
   margin-bottom: 8px;
   padding-bottom: 5px; /* Odstęp pod tekstem */
-  background-color: rgba(244, 225, 193, 0.174); /* Przezroczysty jasny brązowy kolor tła */
+  background-color: #8b67553b; /* Przezroczysty jasny brązowy kolor tła */
   
   display: inline-block; /* Zmienia szerokość elementu na pasującą do tekstu */
 }
@@ -1734,7 +1751,7 @@ p {
 body {
   margin: 0;
   font-family: "Arial", sans-serif;
-  background-color: #fdf8f0;
+  background-color: #ffffff;
   color: #5c4033;
 }
 

@@ -25,7 +25,7 @@
 
 
 
-    <button @click="getGenres('Book test')">get genres</button>
+    <button @click="getGenres('test')">get genres</button>
     <ul v-if="genres && genres.length">
   <li v-for="(genre, index) in genres" :key="index">{{ genre }}</li>
 </ul>

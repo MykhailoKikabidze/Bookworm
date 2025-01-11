@@ -1,70 +1,73 @@
+
 <template>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  
+ <div class="book-details-container1">
+    <!-- Informacje o książce po lewej stronie -->
+    <div class="book-info1">
+      <h1 class="book-title1">{{ book.title }}</h1>
 
-  <div class="book-info">
-    <h1 class="book-title">{{ book.title }}</h1>
-
-    <div class="info-item">
-      <div class="info-title">Description:</div>
-      <div class="info-content">{{ book.description || "No description available." }}</div>
-    </div>
-    
-    <div class="info-item">
-      <div class="info-title">Year of Publication:</div>
-      <div class="info-content">{{ book.year_of_pub || "Unknown" }}</div>
-    </div>
-    
-    <div class="info-item">
-      <div class="info-title">Publisher:</div>
-      <div class="info-content">{{ book.publisher || "Unknown" }}</div>
-    </div>
-    
-    <div class="info-item">
-      <div class="info-title">Authors:</div>
-      <div class="info-content">
-        <ul v-if="book.authors && book.authors.length">
-          <li v-for="(author, index) in book.authors" :key="index">{{ author.name }} {{ author.surname }}</li>
-        </ul>
-        <p v-else>No authors available.</p>
+      <div class="info-item1">
+        <div class="info-title1">Description:</div>
+        <div class="info-content1">{{ book.description || "No description available." }}</div>
       </div>
-    </div>
-    
-    <div class="info-item">
-      <div class="info-title">Genres:</div>
-      <div class="info-content">
-        <ul v-if="book.genres && book.genres.length">
-          <li v-for="(genre, index) in book.genres" :key="index">{{ genre }}</li>
-        </ul>
-        <p v-else>No genres available.</p>
+
+      <div class="info-item1">
+        <div class="info-title1">Authors:</div>
+        <div class="info-content1">
+          <ul v-if="book.authors && book.authors.length">
+            <li v-for="(author, index) in book.authors" :key="index">{{ author.name }} {{ author.surname }}</li>
+          </ul>
+          <p v-else>No authors available.</p>
+        </div>
       </div>
+
+      
+      
+      <div class="info-item1">
+        <div class="info-title1">Genres:</div>
+        <div class="info-content1">
+          <ul v-if="book.genres && book.genres.length">
+            <li v-for="(genre, index) in book.genres" :key="index">{{ genre }}</li>
+          </ul>
+          <p v-else>No genres available.</p>
+        </div>
+      </div>
+
+      <div class="info-item1">
+        <div class="info-title1">Themes:</div>
+        <div class="info-content1">
+          <ul v-if="book.themes && book.themes.length">
+            <li v-for="(theme, index) in book.themes" :key="index">{{ theme }}</li>
+          </ul>
+          <p v-else>No themes available.</p>
+        </div>
+      </div>
+      
+      <div class="info-item1">
+        <div class="info-title1">Year of Publication:</div>
+        <div class="info-content1">{{ book.year_of_pub || "Unknown" }}</div>
+      </div>
+      
+      <div class="info-item1">
+        <div class="info-title1">Publisher:</div>
+        <div class="info-content1">{{ book.publisher || "Unknown" }}</div>
+      </div>
+      
+      
     </div>
 
-    <div class="info-item">
-      <div class="info-title">Themes:</div>
-      <div class="info-content">
-        <ul v-if="book.themes && book.themes.length">
-          <li v-for="(theme, index) in book.themes" :key="index">{{ theme }}</li>
-        </ul>
-        <p v-else>No themes available.</p>
+    <!-- Obrazki książki po prawej stronie -->
+    <div class="image-list1" v-if="displayImages">
+      <div 
+        v-for="(imageUrl, index) in downloadedImageUrls" 
+        :key="index"
+        class="image-item1"
+      >
+        <img :src="imageUrl" alt="Book Cover" class="book-cover-image1" />
       </div>
     </div>
   </div>
-
-  <div class="image-list" v-if="displayImages">
-    <div 
-      v-for="(imageUrl, index) in downloadedImageUrls" 
-      :key="index"
-      class="image-item"
-    >
-      <img :src="imageUrl" alt="Book Cover" class="book-cover-image" />
-    </div>
-  </div>
-
-
-  <div v-else>
-    <p>Loading book details...</p>
-  </div>
-
+  
   <header class="header">
     <h1>Book Reader</h1>
     <div class="actions">
@@ -1210,7 +1213,125 @@ async downloadImages() {
 </script>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
+
+
+.book-details-container1 {
+  display: flex;
+  align-items: flex-start;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 800px; /* Zmniejszona maksymalna szerokość */
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  border-radius: 15px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+}
+
+.book-info1 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* Jednolity odstęp między sekcjami */
+}
+
+.book-title1 {
+  font-family: 'Cinzel', serif;
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #6E4B3A; /* Zmieniony kolor na ciemny brąz */
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #6E4B3A; /* Brązowa linia pod tytułem */
+  padding-bottom: 5px;
+}
+
+
+.info-item1 {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Brązowa linia tła pod nagłówkami */
+.info-title1 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #6E4B3A; /* Brązowy kolor tekstu */
+  margin-bottom: 8px;
+  padding-bottom: 5px; /* Odstęp pod tekstem */
+  background-color: rgba(244, 225, 193, 0.174); /* Przezroczysty jasny brązowy kolor tła */
+  
+  display: inline-block; /* Zmienia szerokość elementu na pasującą do tekstu */
+}
+
+.info-content1 {
+  font-size: 0.95rem; /* Zmniejszony rozmiar treści */
+  color: #555555;
+  line-height: 1.5;
+}
+
+.info-content1 ul li {
+  border-left: 3px solid #6E4B3A; /* Brązowa linia w liście */
+  padding-left: 10px;
+  margin-bottom: 5px;
+  color: #6E4B3A; /* Kolor tekstu w liście */
+  font-weight: 500;
+}
+
+.info-content1 ul li {
+  padding: 5px 0;
+  border-left: 3px solid #8B4513; /* Zmieniony kolor na brązowy */
+  padding-left: 10px;
+  margin-bottom: 5px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.image-list1 {
+  margin-left: 10px; /* Przesunięcie zdjęcia w lewo */
+  margin-top: 150px; /* Przesunięcie zdjęcia w dół */
+  max-width: 350px; /* Zwiększona szerokość zdjęcia */
+}
+
+
+.image-item1 {
+  width: 100%;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.book-cover-image1 {
+  width: 100%;
+  height: auto; /* Zachowuje proporcje */
+  display: block;
+}
+
+.image-item1:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .book-details-container1 {
+    flex-direction: column; /* Ustawienie elementów w pionie dla małych ekranów */
+    align-items: center;
+  }
+
+  .image-list1 {
+    margin-left: 0;
+    margin-top: 20px; /* Odstęp nad obrazem dla małych ekranów */
+  }
+}
+
+
 .modal {
+
+  
   position: fixed;
   top: 0;
   left: 0;

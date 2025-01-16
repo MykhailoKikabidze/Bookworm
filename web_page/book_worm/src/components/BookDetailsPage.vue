@@ -4,7 +4,13 @@
  <div class="book-details-container1">
     <!-- Informacje o książce po lewej stronie -->
     <div class="book-info1">
-      <h1 class="book-title1">{{ book.title }}</h1>
+      <h1 class="book-title1">
+  {{ book.title }}
+  <button @click="toggleFavorite(book.title)" class="favorite-btn">
+    <span v-if="isFavorite(book.title)" class="favorite-active">❤️</span>
+    <span v-else class="favorite-inactive">🤍</span>
+  </button>
+</h1>
 
       <div class="info-item1">
         <div class="info-title1">Description:</div>
@@ -71,28 +77,31 @@
   
   
   <header class="header">
-    <h1>Book Reader</h1>
-    <div class="actions">
-      <!-- Dropdown to Select Group -->
-      <div class="select-group-container">
-        <select v-model="selectedGroup" class="group-select">
-          <option value="is_favourite">Favourite</option>
-          <option value="want_to_read">Want to Read</option>
-          <option value="now_reading">Now Reading</option>
-          <option value="have_read">Have Read</option>
-        </select>
-      </div>
+    <!-- Button to Add to Favorites and Want to Read -->
+   
 
-      <!-- Button to Delete Group -->
-      <button @click="deleteGroups(book.title)" class="action-button delete-button">
-        Remove from Group
-      </button>
+  <h1>Book Reader</h1>
 
-      <!-- Button to Add Book to Group -->
-      <button @click="postGroups(book.title)" class="action-button add-to-group-button">
-        Add to Group
-      </button>
+  <div class="actions">
+    <!-- Dropdown to Select Group -->
+    <div class="select-group-container">
+      <select v-model="selectedGroup" class="group-select">
+        <option value="want_to_read">Want to Read</option>
+        <option value="now_reading">Now Reading</option>
+        <option value="have_read">Have Read</option>
+      </select>
     </div>
+
+    <!-- Button to Delete Group -->
+    <button @click="deleteGroups(book.title)" class="action-button delete-button">
+      Remove from Group
+    </button>
+
+    <!-- Button to Add Book to Group (based on the selected group) -->
+    <button @click="addToGroup(book.title, selectedGroup)" class="action-button add-to-group-button">
+      Add to Group
+    </button>
+  </div>
     <button @click="downloadBookFile(this.book.title)">Download EPUB</button>
   </header>
 
@@ -173,6 +182,7 @@ import Toast from './Toast.vue';
 export default {
   data() {
     return {
+      favorites: [], // Lista ulubionych książek
       isFormVisible: false,
       title: '',
       page: '',
@@ -220,6 +230,9 @@ export default {
   },
 
   mounted() { 
+       // Załaduj ulubione książki z localStorage po załadowaniu komponentu
+       const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
+    this.favorites = savedFavorites;
     // Если book.title не задан в data, берём его из параметров роутинга
     this.book = this.book || { title: this.$route.params.title || "Unknown Title" };
     console.log("Loaded book title from route:", this.book.title);
@@ -234,6 +247,364 @@ export default {
   },
 
   methods: {
+    
+     // Sprawdza, czy książka jest w ulubionych
+     isFavorite(title) {
+      return this.favorites.includes(title);
+    },
+
+    // Zmieniamy stan książki w ulubionych
+    async toggleFavorite(title) {
+  const toastRef = this.$refs.toastRef;
+
+  if (this.isFavorite(title)) {
+    // Usuwamy książkę z ulubionych
+    await this.removeFromFavorites(title);
+  } else {
+    try {
+      // Dodajemy książkę do ulubionych
+      await this.addToFavorites(title);
+    } catch (error) {
+      // Wyświetlamy komunikat błędu, jeśli książka nie została dodana
+      console.error(error.message);
+      toastRef.message = `Error: ${error.message}`;
+      toastRef.notificationClass = "error-toast";
+      toastRef.showNotificationMessage();
+    }
+  }
+}
+,
+async removeFromFavorites(title) {
+  const toastRef = this.$refs.toastRef;
+
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
+
+    const getResponse = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+      },
+    });
+
+    if (getResponse.ok) {
+      const existingGroup = await getResponse.json();
+      
+      const updateRequestBody = {
+        ...existingGroup,
+        is_favourite: false,
+      };
+
+      const param = new URLSearchParams();
+      param.append("title", title);
+
+      const response = await fetch(`${this.$link_backend}/groups?${param.toString()}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + localStorage.getItem("authToken"),
+          "ngrok-skip-browser-warning": "anyValue",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateRequestBody),
+      });
+
+      if (response.ok) {
+        const index = this.favorites.indexOf(title);
+        if (index !== -1) {
+          this.favorites.splice(index, 1);
+          this.updateFavoritesInLocalStorage(); // Upewnij się, że zaktualizujesz localStorage
+        }
+
+        toastRef.message = "Removed from favorites!";
+        toastRef.notificationClass = "success-toast";
+      } else {
+        const data = await response.json();
+        throw new Error(data.detail || "Failed to update favorites.");
+      }
+    } else if (getResponse.status === 404) {
+      const index = this.favorites.indexOf(title);
+      if (index !== -1) {
+        this.favorites.splice(index, 1);
+        this.updateFavoritesInLocalStorage();
+        toastRef.message = "Removed from favorites!";
+        toastRef.notificationClass = "success-toast";
+      } else {
+        throw new Error("Book not found in favorites.");
+      }
+    } else {
+      throw new Error("Error fetching group data.");
+    }
+  } catch (error) {
+    console.error("Error removing from favorites:", error.message);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+  } finally {
+    toastRef.showNotificationMessage();
+  }
+},
+
+async addToFavorites(title) {
+  const toastRef = this.$refs.toastRef;
+
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
+
+    const getResponse = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+      },
+    });
+
+    if (getResponse.ok) {
+      const existingGroup = await getResponse.json();
+
+      const updateRequestBody = {
+        ...existingGroup,
+        is_favourite: true,
+      };
+
+      const param = new URLSearchParams();
+      param.append("title", title);
+
+      const response = await fetch(`${this.$link_backend}/groups?${param.toString()}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + localStorage.getItem("authToken"),
+          "ngrok-skip-browser-warning": "anyValue",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateRequestBody),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        toastRef.message = "Failed to update favorites"; // Tutaj zamiast rzucać błąd, wyświetlamy komunikat
+        toastRef.notificationClass = "error-toast";
+        toastRef.showNotificationMessage();
+      } else {
+        // Operacja się powiodła, aktualizujemy stan lokalny
+        this.favorites.push(title);
+        this.updateFavoritesInLocalStorage();
+        toastRef.message = "Added to favorites!";
+        toastRef.notificationClass = "success-toast";
+        toastRef.showNotificationMessage();
+      }
+    } else {
+      // Wyświetlamy komunikat o braku książki w grupie, zamiast rzucać wyjątek
+      toastRef.message = "Please, add a book to one of the groups.";
+      toastRef.notificationClass = "error-toast";
+      toastRef.showNotificationMessage();
+    }
+  } catch (error) {
+    console.error("Error:", error.message);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+    toastRef.showNotificationMessage();
+  }
+},
+
+
+    // Funkcja do dodawania książki do ulubionych, którą podałeś
+    async postGroupsF(title) {
+      const toastRef = this.$refs.toastRef;
+
+      try {
+        const params = new URLSearchParams();
+        params.append("title", title);
+
+        const getResponse = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+          method: "GET",
+          headers: {
+            "Authorization": "Bearer " + localStorage.getItem("authToken"),
+            "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (getResponse.ok) {
+          const existingGroup = await getResponse.json();
+
+          const updateRequestBody = {
+            ...existingGroup,
+            is_favourite: true, // Ustawiamy na true, aby dodać do ulubionych
+          };
+          const param = new URLSearchParams();
+          param.append("title", title);
+          console.log("bla", updateRequestBody);
+
+          const response = await fetch(`${this.$link_backend}/groups?${param.toString()}`, {
+            method: "PUT",
+            headers: {
+              "Authorization": "Bearer " + localStorage.getItem("authToken"),
+              "ngrok-skip-browser-warning": "anyValue",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateRequestBody),
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error("Failed to update favorites", data.detail);
+          }
+
+          toastRef.message = "Added to favorites!";
+          toastRef.notificationClass = "success-toast";
+        } else {
+          throw new Error("Please, add a book to one of the groups.");
+        }
+      } catch (error) {
+        console.error(error.message);
+        toastRef.message = `Error: ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+      } finally {
+        toastRef.showNotificationMessage();
+      }
+    },
+
+    // Funkcja do aktualizacji ulubionych w localStorage
+    updateFavoritesInLocalStorage() {
+      localStorage.setItem('favorites', JSON.stringify(this.favorites));
+    },
+  
+
+async addToGroup(title, groupType) {
+  const toastRef = this.$refs.toastRef;
+
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
+
+    // Fetch the current group info
+    const getResponse = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+      },
+    });
+
+    if (getResponse.ok) {
+      const existingGroup = await getResponse.json();
+
+      // Check if the book is already in the desired group
+      if (
+        (groupType === "want_to_read" && existingGroup.want_to_read) ||
+        (groupType === "now_reading" && existingGroup.now_reading) ||
+        (groupType === "have_read" && existingGroup.have_read) ||
+        (groupType === "is_favourite" && existingGroup.is_favourite)
+      ) {
+        // Book is already in the group, show the appropriate message
+        toastRef.message = `You already have this book in the ${groupType} group.`;
+        toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+        return; // Exit early to avoid adding the book again
+      }
+
+      // Log the existing group data for debugging
+      console.log("Existing Group:", existingGroup);
+
+      // Remove the book from the current group (set all flags to false)
+      const updateRequestBody = {
+        ...existingGroup,
+        want_to_read: false,
+        now_reading: false,
+        have_read: false,
+        is_favourite: existingGroup.is_favourite || false,
+      };
+
+      // Send the PUT request to remove the book from the previous group
+      const putResponse = await fetch(`${this.$link_backend}/groups/${existingGroup.id}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + localStorage.getItem("authToken"),
+          "ngrok-skip-browser-warning": "anyValue",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateRequestBody),
+      });
+
+      // Log the PUT response for debugging
+      console.log("PUT Response:", putResponse.status, await putResponse.text());
+
+      if (!putResponse.ok) {
+        toastRef.message = `You already have this book in the ${groupType} group.`;
+        toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+        return;
+      }
+    } else if (getResponse.status === 404) {
+      console.log("No existing group found, adding a new group.");
+    } else {
+      throw new Error("Failed to fetch group");
+    }
+
+    // Add the book to the new group using the postGroups method
+    await this.postGroups(title, groupType);
+
+  } catch (error) {
+    console.error(error.message);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+  } finally {
+    toastRef.showNotificationMessage();
+  }
+}
+,
+
+async postGroups(title, groupType) {
+  const toastRef = this.$refs.toastRef;
+
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
+
+    // Create the JSON object for the request body
+    const requestBody = {
+      is_favourite: false,
+      want_to_read: groupType === "want_to_read",
+      now_reading: groupType === "now_reading",
+      have_read: groupType === "have_read"
+    };
+
+    // Execute the POST request with JSON body
+    const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+        "Content-Type": "application/json", // Set content type to JSON
+      },
+      body: JSON.stringify(requestBody), // Use JSON.stringify to send the body as JSON
+    });
+
+    // Handle response
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
+      toastRef.notificationClass = "error-toast";
+      this.$refs.toastRef.showNotificationMessage();
+      return;
+    }
+
+    const result = await response.json();
+    toastRef.message = "The book has been successfully added!";
+    toastRef.notificationClass = "success-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    console.log(result);
+  } catch (error) {
+    console.error("Error:", error);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+  }
+}
+,
+
+
     toggleForm() {
       this.isFormVisible = !this.isFormVisible;
     },
@@ -444,37 +815,41 @@ export default {
     },
 
     async deleteGroups(title) {
-      const toastRef = this.$refs.toastRef;
-      const params = new URLSearchParams();
-      params.append("title", title);
+  const toastRef = this.$refs.toastRef;
+  const params = new URLSearchParams();
+  params.append("title", title);
 
-      try {
-        const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
-          method: "DELETE",
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
-            "ngrok-skip-browser-warning": "anyValue",
-          },
-        });
+  try {
+    const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+        "ngrok-skip-browser-warning": "anyValue",
+      },
+    });
 
-        if (response.ok) {
-          const data = await response.json();
-          
-          toastRef.message = `Book was deleted`;
-          toastRef.notificationClass = "success-toast";
-        } else {
-          const errorData = await response.json();
-          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
-          toastRef.notificationClass = "error-toast";
-        }
-      } catch (error) {
-        console.error(`Error downloading image for "${title}":`, error);
-        toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
-        toastRef.notificationClass = "error-toast";
-      }
+    if (response.ok) {
+      const data = await response.json();
 
-      this.$refs.toastRef.showNotificationMessage();
-    },
+      // Po usunięciu książki z grupy, usuń ją również z ulubionych
+      await this.removeFromFavorites(title); // Wywołanie usunięcia z ulubionych
+
+      toastRef.message = `Book was deleted and removed from favorites`;
+      toastRef.notificationClass = "success-toast";
+    } else {
+      const errorData = await response.json();
+      toastRef.message = `You don't have any book in groups`;
+      toastRef.notificationClass = "error-toast";
+    }
+  } catch (error) {
+    console.error(`Error downloading image for "${title}":`, error);
+    toastRef.message = `You don't have any book in groups`;
+    toastRef.notificationClass = "error-toast";
+  }
+
+  this.$refs.toastRef.showNotificationMessage();
+},
+
 
     async getGroups(title) {
       const toastRef = this.$refs.toastRef;
@@ -510,99 +885,54 @@ export default {
       this.$refs.toastRef.showNotificationMessage();
     },
 
-    async postGroups(title, is_favourite, want_to_read, now_reading, have_read) {
-      const toastRef = this.$refs.toastRef; // Reference for notifications
+    async postGroups(title) {
+  const toastRef = this.$refs.toastRef; // Reference for notifications
 
-      try {
-        const params = new URLSearchParams();
-        params.append("title", title);
+  try {
+    const params = new URLSearchParams();
+    params.append("title", title);
 
-        // Create the JSON object for the request body
-        const requestBody = {
-          is_favourite: is_favourite,
-          want_to_read: want_to_read,
-          now_reading: now_reading,
-          have_read: have_read
-        };
+    // Dynamically set the group based on the selectedGroup value
+    const requestBody = {
+      is_favourite: this.selectedGroup === "is_favourite",
+      want_to_read: this.selectedGroup === "want_to_read",
+      now_reading: this.selectedGroup === "now_reading",
+      have_read: this.selectedGroup === "have_read",
+    };
 
-        // Execute the POST request with JSON body
-        const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + localStorage.getItem("authToken"),
-            "ngrok-skip-browser-warning": "anyValue",
-            "Content-Type": "application/json", 
-          },
-          body: JSON.stringify(requestBody),
-        });
+    // Execute the POST request with JSON body
+    const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+        "ngrok-skip-browser-warning": "anyValue",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
-          toastRef.notificationClass = "error-toast";
-          this.$refs.toastRef.showNotificationMessage();
-          return;
-        }
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
+      toastRef.notificationClass = "error-toast";
+      this.$refs.toastRef.showNotificationMessage();
+      return;
+    }
 
-        const result = await response.json();
-        toastRef.message = "The book has been successfully added!";
-        toastRef.notificationClass = "success-toast";
-        this.$refs.toastRef.showNotificationMessage();
-        console.log(result);
-      } catch (error) {
-        console.error("Error:", error);
-        toastRef.message = `Error: ${error.message}`;
-        toastRef.notificationClass = "error-toast";
-        this.$refs.toastRef.showNotificationMessage();
-      }
-    },
+    const result = await response.json();
+    toastRef.message = "The book has been successfully added!";
+    toastRef.notificationClass = "success-toast";
+    this.$refs.toastRef.showNotificationMessage();
+    console.log(result);
+  } catch (error) {
+    console.error("Error:", error);
+    toastRef.message = `Error: ${error.message}`;
+    toastRef.notificationClass = "error-toast";
+    this.$refs.toastRef.showNotificationMessage();
+  }
+},
 
-    async updateGroups(title, is_favourite, want_to_read, now_reading, have_read) {
-      const toastRef = this.$refs.toastRef; // Reference for notifications
 
-      try {
-        const params = new URLSearchParams();
-        params.append("title", title);
-
-        // Create the JSON object for the request body
-        const requestBody = {
-          is_favourite: is_favourite,
-          want_to_read: want_to_read,
-          now_reading: now_reading,
-          have_read: have_read
-        };
-
-        // Execute the PUT request with JSON body
-        const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
-          method: "PUT",
-          headers: {
-            "Authorization": "Bearer " + localStorage.getItem("authToken"),
-            "ngrok-skip-browser-warning": "anyValue",
-            "Content-Type": "application/json", 
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
-          toastRef.notificationClass = "error-toast";
-          this.$refs.toastRef.showNotificationMessage();
-          return;
-        }
-
-        const result = await response.json();
-        toastRef.message = "The book has been successfully updated!";
-        toastRef.notificationClass = "success-toast";
-        this.$refs.toastRef.showNotificationMessage();
-        console.log(result);
-      } catch (error) {
-        console.error("Error:", error);
-        toastRef.message = `Error: ${error.message}`;
-        toastRef.notificationClass = "error-toast";
-        this.$refs.toastRef.showNotificationMessage();
-      }
-    },
 
     async getGenres(title) {
       const toastRef = this.$refs.toastRef;
@@ -1367,6 +1697,42 @@ async downloadImages() {
 </script>
 
 <style>
+
+.book-title1 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Odstęp między tytułem a sercem */
+}
+
+.favorite-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem; /* Rozmiar serca */
+  padding: 0;
+  margin-left: 10px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.favorite-active {
+  color: pink; /* Różowe serce dla ulubionych */
+}
+
+.favorite-inactive {
+  color: gray; /* Szare serce dla książek niebędących w ulubionych */
+}
+
+.favorite-btn:hover span {
+  transform: scale(1.2); /* Powiększenie serca po najechaniu */
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+
+
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
 
 .library-container {

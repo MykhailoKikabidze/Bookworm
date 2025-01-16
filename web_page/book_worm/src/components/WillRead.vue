@@ -1,31 +1,26 @@
 <template>
   <div class="library-container">
-    <!-- Button to fetch and display book metadata -->
-    <!-- Przycisk do wyświetlania książek -->
-
-
-
     <!-- Book List -->
-    <div class="book-list" v-if="displayMetadata">
-  <div
-    v-for="(book, index) in books"
-    :key="index"
-    class="book-item"
-    @click="viewBookDetails(book, downloadedImageUrls[index])"
-  >
-    <img :src="downloadedImageUrls[index]" alt="Book Cover" class="book-cover" />
- <br>
-      <h2>{{ book.title }}</h2>
-      <p><strong>Year of Publication:</strong> {{ book.year_of_pub }}</p>
-      <p><strong>Publisher:</strong> {{ book.publisher }}</p>
+    <div class="book-list" v-if="groupBooks.length > 0">
+      <div
+        v-for="(book, index) in groupBooks"
+        :key="index"
+        class="book-item"
+        @click="viewBookDetails(book, downloadedImageUrls[index])"
+      >
+        <img :src="downloadedImageUrls[index]" alt="Book Cover" class="book-cover" />
+        <h2>{{ book.title }}</h2>
+        <p><strong>Year of Publication:</strong> {{ book.year_of_pub }}</p>
+        <p><strong>Publisher:</strong> {{ book.publisher }}</p>
+      </div>
+    </div>
 
-  </div>
-</div>
+    <!-- Fallback message -->
+    <p v-else>No books available in this group.</p>
 
     <Toast ref="toastRef" />
   </div>
 </template>
-
 
 <script>
 import Toast from './Toast.vue';
@@ -33,103 +28,75 @@ import Toast from './Toast.vue';
 export default {
   data() {
     return {
-      downloadedImageUrls: [],
-      displayImages: false,
-      imageSrc: null,
-      books: [],
-      book: [],
-      imageUrl: null,
-      responseData: "",
-      displayMetadata: false,
-      selectedImage: null,
-      selectedFile: null,
-      bookPdfUrl: null,
-      displayPdf: false,
+      downloadedImageUrls: [], // Array of image URLs matching groupBooks
+      groupBooks: [], // Store books filtered by group
+      books: [], // All books fetched
     };
   },
   components: {
     Toast,
   },
   mounted() {
-    // Automatically fetch and display books when the component is mounted
-    this.displayBookMetadata();
+    // Call fetchGroupBooks when the component is mounted
+    this.fetchGroupBooks('now_reading');
   },
   methods: {
-    viewBookDetails(book) {
-    this.$router.push({
-      name: 'BookDetails',
-      params: { title: book.title },
-      query: { imageUrl: this.downloadedImageUrls[this.books.indexOf(book)] } // Pass the image URL as a query
-    });
-  },
-    async displayBookMetadata() {
-      if (this.books.length === 0) {
-        this.downloadImagesAndMetadata();
-      }
-      this.displayMetadata = true;
-    },
-
-    async downloadImagesAndMetadata() {
+    async fetchGroupBooks(group) {
       const toastRef = this.$refs.toastRef;
-      const params = new URLSearchParams();
-      params.append("page", 1);
-      params.append("page_size", 10);
 
       try {
-        const response = await fetch(`${this.$link_backend}/books/all?${params.toString()}`, {
-          method: "GET",
+        const param = new URLSearchParams();
+        param.append('group', group);
+
+        const response = await fetch(`${this.$link_backend}/filter/books/groups?${param.toString()}`, {
+          method: 'GET',
           headers: {
-            "Content-type": "application/json",
-            "ngrok-skip-browser-warning": "anyValue",
+            'ngrok-skip-browser-warning': 'anyValue',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
           },
         });
 
         if (response.ok) {
           const data = await response.json();
 
-          // Store the fetched books
-          this.books = data.map(book => ({
+          // Update groupBooks and reset images
+          this.groupBooks = data.map(book => ({
             title: book.title,
             publisher: book.publisher,
             year_of_pub: book.year_of_pub,
-            description: book.description || "No description available.",
-            genres: book.genres || [],
+            description: book.description || 'No description available.',
           }));
 
-          // Fetch images for each book
-          for (const book of data) {
+          // Fetch images for filtered books
+          this.downloadedImageUrls = [];
+          for (const book of this.groupBooks) {
             await this.downloadImage(book.title);
           }
-
-         
         } else {
-          const errorData = await response.json();
-          toastRef.message = "Error fetching books: " + (errorData.detail || "Unknown error");
-          toastRef.notificationClass = "error-toast";
-          this.$refs.toastRef.showNotificationMessage();
-
+          const error = await response.json();
+          toastRef.message = `Error fetching books: ${error.detail || 'Unknown error'}`;
+          toastRef.notificationClass = 'error-toast';
+          toastRef.showNotificationMessage();
         }
       } catch (error) {
-        console.error("Error fetching book data:", error);
-        toastRef.message = "Network error. Please try again. " + error.message;
-        toastRef.notificationClass = "error-toast";
-        this.$refs.toastRef.showNotificationMessage();
-
+        console.error('Error fetching group books:', error);
+        toastRef.message = 'Network error. Please try again.';
+        toastRef.notificationClass = 'error-toast';
+        toastRef.showNotificationMessage();
       }
-
     },
 
     async downloadImage(title) {
       const toastRef = this.$refs.toastRef;
       const params = new URLSearchParams();
-      params.append("title", title);
+      params.append('title', title);
 
       try {
         const response = await fetch(`${this.$link_backend}/books/img?${params.toString()}`, {
-          method: "GET",
+          method: 'GET',
           headers: {
-            "ngrok-skip-browser-warning": "anyValue",
-            "Authorization": "Bearer " + localStorage.getItem("authToken"),
+            'ngrok-skip-browser-warning': 'anyValue',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
           },
         });
 
@@ -137,31 +104,32 @@ export default {
           const blob = await response.blob();
           const url = URL.createObjectURL(blob);
 
-          // Store the image URL
+          // Store the image URL in the same order as groupBooks
           this.downloadedImageUrls.push(url);
-
-         
         } else {
           const errorData = await response.json();
-          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
-          toastRef.notificationClass = "error-toast";
-          this.$refs.toastRef.showNotificationMessage();
-
+          toastRef.message = `Error fetching image for "${title}": ${errorData.detail || 'Unknown error'}`;
+          toastRef.notificationClass = 'error-toast';
+          toastRef.showNotificationMessage();
         }
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
-        toastRef.notificationClass = "error-toast";
-        this.$refs.toastRef.showNotificationMessage();
-
+        toastRef.notificationClass = 'error-toast';
+        toastRef.showNotificationMessage();
       }
+    },
 
+    viewBookDetails(book, imageUrl) {
+      this.$router.push({
+        name: 'BookDetails',
+        params: { title: book.title },
+        query: { imageUrl }, // Pass the image URL as a query
+      });
     },
   },
 };
 </script>
-
-
 
 <style scoped>
 h2 {
@@ -173,18 +141,18 @@ color: #5e5c5c;
 }
 .library-container {
   position: relative;
-  width: 100%; /* Ensure it takes up the full width */
-  height: 100%; /* Make the container take the full screen height */
+  width: 100%; /* Zapewnia, że kontener zajmuje całą szerokość */
+  height: 100vh; /* Ustala wysokość kontenera na 100% wysokości okna przeglądarki */
   margin: 0;
   padding: 20px;
   font-family: 'Roboto', Arial, sans-serif;
   color: #333;
   /* Background image with opacity */
-  background-image: url('/src/components/icons/background.jpg');
-  background-size: cover; /* Ensure the background covers the entire container */
-  background-position: center; /* Center the image */
-  background-repeat: no-repeat; /* Prevent the image from repeating */
-  opacity: 0.85; /* Apply opacity to the background */
+  background-image: url('/src/components/icons/stena.webp');
+  background-size: cover; /* Zapewnia, że tło pokrywa cały kontener */
+  background-position: center; /* Ustawia tło na środku */
+  background-repeat: no-repeat; /* Zapobiega powtarzaniu się tła */
+  opacity: 0.85; /* Ustawia pełną widoczność tła */
 }
 
 .library-container::before {
@@ -194,9 +162,12 @@ color: #5e5c5c;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4); /* Darker overlay for better readability */
-  z-index: -1; /* Ensures overlay is behind the content */
+  background-color: rgba(0, 0, 0, 0.4); /* Przyciemniony overlay dla lepszej widoczności tekstu */
+  z-index: -1; /* Zapewnia, że overlay jest pod zawartością */
 }
+
+/* Reszta stylów pozostaje bez zmian */
+
 
 
 

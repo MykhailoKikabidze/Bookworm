@@ -44,9 +44,40 @@
     <div class="banner-content">
       <h1>{{ displayedText.split(',').join(',\n') }}</h1>
       <div class="search-bar">
-        <input type="text" v-model="searchQuery" placeholder="Search for books..." />
-        <button @click="performSearch">Search</button>
-      </div>
+        <div class="dropdown" @mouseenter="toggleFilterMenu" @mouseleave="toggleFilterMenu">
+          <button @click="goToFilters" class="filter-icon">
+            <i class="fas fa-bars"></i>
+          </button>
+          <!-- <div v-if="filterMenuVisible" class="dropdown-menu">
+            <div class="filter-option" @mouseenter="showSubMenu('authors')" @mouseleave="hideSubMenu">
+                Authors
+                <div v-if="activeSubMenu === 'authors'" class="submenu">
+                  <a @click="performSearch">Author 1</a>
+                  <a @click="performSearch">Author 2</a>
+                  <a @click="performSearch">Author 3</a>
+                </div>
+              </div>
+
+              <div class="filter-option" @mouseenter="showSubMenu('themes')" @mouseleave="hideSubMenu">
+                Themes
+                <div v-if="activeSubMenu === 'themes'" class="submenu">
+                  <a v-for="theme in availableThemes" :key="theme" @click="goToFilters(theme)">{{ theme }}</a>
+                </div>
+              </div>
+
+              <div class="filter-option" @mouseenter="showSubMenu('genres')" @mouseleave="hideSubMenu">
+                Genres
+                <div v-if="activeSubMenu === 'genres'" class="submenu">
+                  <a v-for="genre in availableGenres" :key="genre" @click="goToFilters(genre)">{{ genre }}</a>
+                </div>
+              </div>
+          </div> -->
+        </div>
+        
+  <input type="text" v-model="searchQuery" placeholder="Search for books..." />
+  <button @click="performSearch">Search</button>
+</div>
+
       <!-- Komunikat o błędzie -->
       <div v-if="searchError" class="custom-alert">
         <span>Please enter a search query.</span>
@@ -77,8 +108,41 @@ export default {
       confirmPassword: '',
       passwordVisible: false,
       newUsername: '',
-      searchQuery: '',
+      filterMenuVisible: false,  // Controls visibility of the filter modal
+      activeFilter: '', 
+      activeSubMenu: null,          
       searchError: false, // Flaga do pokazania komunikatu błędu
+      availableGenres: [
+        'Fiction', 
+        'Non-Fiction', 
+        'Mystery', 
+        'Romance', 
+        'Science Fiction', 
+        'Fantasy',
+        'Historical', 
+        'Biography', 
+        'Thriller', 
+        'Adventure', 
+        'Horror', 
+        'Poetry', 
+        'Self-Help', 
+        'Philosophy',
+        'Art', 
+        'Romance novel'
+      ],
+      availableThemes: [
+        'Adventure',
+        'Love',
+        'Mystery',
+        'Historical',
+        'Science Fiction',
+        'Fantasy',
+        'Philosophy',
+        'Life',
+        'Technology',
+        'Politics',
+        'Nature'
+      ],
     };
   },
   created() {
@@ -96,6 +160,25 @@ export default {
     },
   },
   methods: {
+    toggleFilterMenu() {
+      this.filterMenuVisible = !this.filterMenuVisible;
+    },
+    showSubMenu(subMenu) {
+      this.activeSubMenu = subMenu;  // Set the active submenu
+    },
+    hideSubMenu() {
+      this.activeSubMenu = null;  // Hide the submenu when mouse leaves
+    },
+    goToFilters(filter)
+    {
+      this.$router.push({ name: 'Search',params: { filter } });
+
+    },
+    performSearch() {
+      if (this.searchQuery.trim() !== '') {
+        this.$router.push({ name: 'Search', query: { query: this.searchQuery } });
+      }
+    },
     logout() {
       localStorage.removeItem('username');  // Remove username from localStorage
       this.username = '';  // Reset username in component state
@@ -518,15 +601,84 @@ section.banner {
 .navbar nav a:hover::before {
   transform: translate(-50%, -50%) scale(1);
 }
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 200px;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  padding: 10px;
+  z-index: 1000;
+}
+
+.dropdown-menu .filter-option {
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.dropdown-menu .filter-option:hover {
+  background-color: rgba(235, 184, 172, 0.5);
+}
+
+.submenu {
+  display: none;
+  padding-left: 20px;
+}
+
+.submenu a {
+  display: block;
+  padding: 5px 0;
+  color: #002f5b;
+  text-decoration: none;
+}
+
+.submenu a:hover {
+  background-color: #ddd;
+}
+
+.filter-icon {
+  background-color: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0 10px;
+  font-size: 20px;
+}
+
+.filter-icon:hover {
+  color: #335f8d;
+}
+
+/* When hovering over the filter option, show the submenu */
+.filter-option:hover .submenu {
+  display: block;
+}
+
+/* Show dropdown menu on hover */
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
 
 .search-bar {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin-top: 20px;
 }
 
 .search-bar input {
-  width: 300px;
+  flex-grow: 1; /* Make the input box flexible to use remaining space */
+  max-width: 300px;
   height: 40px;
   padding: 10px;
   border: 2px solid #ccc;

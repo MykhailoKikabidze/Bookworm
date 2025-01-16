@@ -206,6 +206,7 @@ export default {
       spineItems: [], // Store the spine items for navigation
       bookUrl: null,
       hz: [], // Store the notes fetched from backend
+      group: null, // Store the group fetched from backend
       currentDescription: "",
       userDescription: "",
       showDescriptionModal: false,
@@ -491,7 +492,7 @@ export default {
 
         if (response.ok) {
           const data = await response.json();          
-          this.hz = data;
+          this.group = data;
 
           toastRef.message = `Successfull"${data.have_read}`;
           toastRef.notificationClass = "success-toast";
@@ -509,7 +510,7 @@ export default {
       this.$refs.toastRef.showNotificationMessage();
     },
 
-    async postGroups(title) {
+    async postGroups(title, is_favourite, want_to_read, now_reading, have_read) {
       const toastRef = this.$refs.toastRef; // Reference for notifications
 
       try {
@@ -518,10 +519,10 @@ export default {
 
         // Create the JSON object for the request body
         const requestBody = {
-          is_favourite: false,
-          want_to_read: false,
-          now_reading: true,
-          have_read: false
+          is_favourite: is_favourite,
+          want_to_read: want_to_read,
+          now_reading: now_reading,
+          have_read: have_read
         };
 
         // Execute the POST request with JSON body
@@ -545,6 +546,53 @@ export default {
 
         const result = await response.json();
         toastRef.message = "The book has been successfully added!";
+        toastRef.notificationClass = "success-toast";
+        this.$refs.toastRef.showNotificationMessage();
+        console.log(result);
+      } catch (error) {
+        console.error("Error:", error);
+        toastRef.message = `Error: ${error.message}`;
+        toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+      }
+    },
+
+    async updateGroups(title, is_favourite, want_to_read, now_reading, have_read) {
+      const toastRef = this.$refs.toastRef; // Reference for notifications
+
+      try {
+        const params = new URLSearchParams();
+        params.append("title", title);
+
+        // Create the JSON object for the request body
+        const requestBody = {
+          is_favourite: is_favourite,
+          want_to_read: want_to_read,
+          now_reading: now_reading,
+          have_read: have_read
+        };
+
+        // Execute the PUT request with JSON body
+        const response = await fetch(`${this.$link_backend}/groups?${params.toString()}`, {
+          method: "PUT",
+          headers: {
+            "Authorization": "Bearer " + localStorage.getItem("authToken"),
+            "ngrok-skip-browser-warning": "anyValue",
+            "Content-Type": "application/json", 
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
+          toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
+          return;
+        }
+
+        const result = await response.json();
+        toastRef.message = "The book has been successfully updated!";
         toastRef.notificationClass = "success-toast";
         this.$refs.toastRef.showNotificationMessage();
         console.log(result);

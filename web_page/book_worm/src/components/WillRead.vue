@@ -3,25 +3,29 @@
     <!-- Button to fetch and display book metadata -->
     <!-- Przycisk do wyświetlania książek -->
 
+
+
     <!-- Book List -->
     <div class="book-list" v-if="displayMetadata">
-      <div
-        v-for="(book, index) in filteredBooks"
-        :key="index"
-        class="book-item"
-        @click="viewBookDetails(book, downloadedImageUrls[index])"
-      >
-        <img :src="downloadedImageUrls[index]" alt="Book Cover" class="book-cover" />
-        <br>
-        <h2>{{ book.title }}</h2>
-        <p><strong>Year of Publication:</strong> {{ book.year_of_pub }}</p>
-        <p><strong>Publisher:</strong> {{ book.publisher }}</p>
-      </div>
-    </div>
+  <div
+    v-for="(book, index) in books"
+    :key="index"
+    class="book-item"
+    @click="viewBookDetails(book, downloadedImageUrls[index])"
+  >
+    <img :src="downloadedImageUrls[index]" alt="Book Cover" class="book-cover" />
+ <br>
+      <h2>{{ book.title }}</h2>
+      <p><strong>Year of Publication:</strong> {{ book.year_of_pub }}</p>
+      <p><strong>Publisher:</strong> {{ book.publisher }}</p>
+
+  </div>
+</div>
 
     <Toast ref="toastRef" />
   </div>
 </template>
+
 
 <script>
 import Toast from './Toast.vue';
@@ -52,67 +56,68 @@ export default {
   },
   methods: {
     viewBookDetails(book) {
-      this.$router.push({
-        name: 'BookDetails',
-        params: { title: book.title },
-        query: { imageUrl: this.downloadedImageUrls[this.books.indexOf(book)] } // Pass the image URL as a query
-      });
+    this.$router.push({
+      name: 'BookDetails',
+      params: { title: book.title },
+      query: { imageUrl: this.downloadedImageUrls[this.books.indexOf(book)] } // Pass the image URL as a query
+    });
+  },
+    async displayBookMetadata() {
+      if (this.books.length === 0) {
+        this.downloadImagesAndMetadata();
+      }
+      this.displayMetadata = true;
     },
 
-    async displayBookMetadata() {
-  if (this.books.length === 0) {
-    this.downloadImagesAndMetadata();
-  }
-  this.displayMetadata = true;
-},
+    async downloadImagesAndMetadata() {
+      const toastRef = this.$refs.toastRef;
+      const params = new URLSearchParams();
+      params.append("page", 1);
+      params.append("page_size", 10);
 
-async downloadImagesAndMetadata() {
-  const toastRef = this.$refs.toastRef;
-  const params = new URLSearchParams();
-  params.append("page", 1);
-  params.append("page_size", 10);
+      try {
+        const response = await fetch(`${this.$link_backend}/books/all?${params.toString()}`, {
+          method: "GET",
+          headers: {
+            "Content-type": "application/json",
+            "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
 
-  try {
-    const response = await fetch(`${this.$link_backend}/books/all?${params.toString()}`, {
-      method: "GET",
-      headers: {
-        "Content-type": "application/json",
-        "ngrok-skip-browser-warning": "anyValue",
-      },
-    });
+        if (response.ok) {
+          const data = await response.json();
 
-    if (response.ok) {
-      const data = await response.json();
+          // Store the fetched books
+          this.books = data.map(book => ({
+            title: book.title,
+            publisher: book.publisher,
+            year_of_pub: book.year_of_pub,
+            description: book.description || "No description available.",
+            genres: book.genres || [],
+          }));
 
-      // Filtrowanie książek tylko z grupy "want_to_read"
-      this.books = data.filter(book => book.groupa === "want_to_read").map(book => ({
-        title: book.title,
-        publisher: book.publisher,
-        year_of_pub: book.year_of_pub,
-        description: book.description || "No description available.",
-        genres: book.genres || [],
-      }));
+          // Fetch images for each book
+          for (const book of data) {
+            await this.downloadImage(book.title);
+          }
 
-      // Fetch images for each book
-      for (const book of this.books) {
-        await this.downloadImage(book.title);
+         
+        } else {
+          const errorData = await response.json();
+          toastRef.message = "Error fetching books: " + (errorData.detail || "Unknown error");
+          toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
+
+        }
+      } catch (error) {
+        console.error("Error fetching book data:", error);
+        toastRef.message = "Network error. Please try again. " + error.message;
+        toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+
       }
 
-      toastRef.notificationClass = "success-toast";
-    } else {
-      const errorData = await response.json();
-      toastRef.message = "Error fetching books: " + (errorData.detail || "Unknown error");
-      toastRef.notificationClass = "error-toast";
-    }
-  } catch (error) {
-    console.error("Error fetching book data:", error);
-    toastRef.message = "Network error. Please try again. " + error.message;
-    toastRef.notificationClass = "error-toast";
-  }
-
-  this.$refs.toastRef.showNotificationMessage();
-},
-
+    },
 
     async downloadImage(title) {
       const toastRef = this.$refs.toastRef;
@@ -135,39 +140,37 @@ async downloadImagesAndMetadata() {
           // Store the image URL
           this.downloadedImageUrls.push(url);
 
-          toastRef.notificationClass = "success-toast";
+         
         } else {
           const errorData = await response.json();
           toastRef.message = `Error fetching image for "${title}": ${errorData.detail || "Unknown error"}`;
           toastRef.notificationClass = "error-toast";
+          this.$refs.toastRef.showNotificationMessage();
+
         }
       } catch (error) {
         console.error(`Error downloading image for "${title}":`, error);
         toastRef.message = `Network error. Could not fetch image for "${title}". ${error.message}`;
         toastRef.notificationClass = "error-toast";
+        this.$refs.toastRef.showNotificationMessage();
+
       }
 
-      this.$refs.toastRef.showNotificationMessage();
-    },
-  },
-  computed: {
-    // Filter books to show only those in the "want_to_read" group
-    filteredBooks() {
-      return this.books.filter(book => book.group === 'want_to_read');
     },
   },
 };
 </script>
 
+
+
 <style scoped>
 h2 {
-  color: #2c0404;
+color: #2c0404;
 }
 
 p {
-  color: #5e5c5c;
+color: #5e5c5c;
 }
-
 .library-container {
   position: relative;
   width: 100%; /* Ensure it takes up the full width */
@@ -194,6 +197,8 @@ p {
   background-color: rgba(0, 0, 0, 0.4); /* Darker overlay for better readability */
   z-index: -1; /* Ensures overlay is behind the content */
 }
+
+
 
 .fetch-btn {
   display: block;
@@ -271,4 +276,5 @@ p {
 .book-info p strong {
   color: #002f5b;
 }
+
 </style>

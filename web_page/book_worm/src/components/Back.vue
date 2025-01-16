@@ -8,8 +8,9 @@
     <button @click="getNotes('test')">get</button>
     <button @click="deleteGroups('test')">deleteGroups</button>
     <button @click="putGroups('Coraline')">putGroups</button>
-    <button @click="getBooksFilter('admin@admin.admin')">filter</button>
-
+    <button @click="console.log(getBooksSubstr('a'))">getBooksSubstr</button>
+    <button @click="console.log(filterBooks(['Tom Clancy'],[],[]))">filterBooks</button>
+    <button @click="console.log(filterBooksByGroup('now_reading'))">filterBooksByGroup</button>
 
     <div
     v-for="(book, index) in books"
@@ -56,66 +57,6 @@ export default {
     handleImageUpload(event) {
   this.selectedImage = event.target.files[0];
 },
-async getBooksFilter(title) {
-  const toastRef = this.$refs.toastRef; // Reference for notifications
-
-  try {
-    const params = new URLSearchParams();
-    params.append("title", title);
-
-    // Create the JSON object for the request body
-    const requestBody = {
-      authors : this.authors,
-      themes: this.themes,
-      genres: this.genres,
-      group_props: this.group_props
-    };
-
-    // Execute the POST request with JSON body
-    const response = await fetch(`${this.$link_backend}/filter/books?${params.toString()}`, {
-      method: "GET",
-      headers: {
-       // "Authorization": "Bearer " + localStorage.getItem("authToken"),
-        "ngrok-skip-browser-warning": "anyValue",
-        "Content-Type": "application/json", // Set content type to JSON
-      },
-      body: JSON.stringify(requestBody), // Use JSON.stringify to send the body as JSON
-    });
-
-    // Handle response
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error response:", JSON.stringify(errorData.detail, null, 2));
-      toastRef.notificationClass = "error-toast";
-      this.$refs.toastRef.showNotificationMessage();
-      return;
-    }
-
-    const data = await response.json();
-
-          // Store the fetched books
-          this.books = data.map(book => ({
-            title: book.title,
-            publisher: book.publisher,
-            year_of_pub: book.year_of_pub,
-            description: book.description,
-            url: book.url,
-            url_img: book.url_img,
-            num_of_pages: book.num_of_pages
-          }));
-
-    toastRef.message = "The book has been successfully added!";
-    toastRef.notificationClass = "success-toast";
-    this.$refs.toastRef.showNotificationMessage();
-    console.log(result);
-  } catch (error) {
-    console.error("Error:", error);
-    toastRef.message = `Error: ${error.message}`;
-    toastRef.notificationClass = "error-toast";
-    this.$refs.toastRef.showNotificationMessage();
-  }
-}
-,
 async putGroups(title) {
   const toastRef = this.$refs.toastRef; // Reference for notifications
 
@@ -277,8 +218,10 @@ async postGroups(title) {
     toastRef.notificationClass = "error-toast";
     this.$refs.toastRef.showNotificationMessage();
   }
-}
-,
+},
+
+
+
 
     async postcheckpoints(title,page) {
       const toastRef = this.$refs.toastRef;
@@ -488,6 +431,89 @@ async postGroups(title) {
 
       this.$refs.toastRef.showNotificationMessage();
     },
+
+    async getBooksSubstr(substr){
+      const param = new URLSearchParams();
+      param.append("substr", substr);
+      try {
+        const response = await fetch(`${this.$link_backend}/books/substr?${param.toString()}`, {
+          method: "GET",
+          headers: {
+            "ngrok-skip-browser-warning": "anyValue",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return data; // You can write receive data into your local var
+        } else {
+          const error = await response.json();
+          console.log("Error getting substr from image in response: ", error.detail);
+        }
+
+      } catch (error) {
+        console.error("Error getting substr from image: ", error);
+      }
+    },
+
+    async filterBooks(authors, themes, genres){
+      //all params is a list of strings. if you dont want to filter by smth just give []
+      //example: ["Tom Shelby", "Anna Kawasaki"]
+      const requestBody = {
+        authors: authors,
+        themes: themes,
+        genres: genres
+      };
+
+      try {
+        const response = await fetch(`${this.$link_backend}/filter/books`, {
+          method: "POST",
+          headers: {
+            "ngrok-skip-browser-warning": "anyValue",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return data; // You can write receive data (big json with books) into your local var
+        } else {
+          const error = await response.json();
+          console.log("Error getting books from filters in response: ", error.detail);
+        }
+
+      } catch (error) {
+        console.error("Error getting books from filters: ", error);
+      }
+    },
+
+    async filterBooksByGroup(group){
+      //group = "is_favourite", "want_to_read", "now_reading", "have_read"
+      const param = new URLSearchParams();
+      param.append("group", group);
+      try {
+        const response = await fetch(`${this.$link_backend}/filter/books/groups?${param.toString()}`, {
+          method: "GET",
+          headers: {
+            "ngrok-skip-browser-warning": "anyValue",
+            "Authorization": `Bearer ${localStorage.getItem('authToken')}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return data; // You can write receive data (big json with books) into your local var
+        } else {
+          const error = await response.json();
+          console.log("Error getting books from filters by group in response: ", error.detail);
+        }
+
+      } catch (error) {
+        console.error("Error getting books from filters by group: ", error);
+      }
+    },
+
 },
 };
 </script>

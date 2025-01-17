@@ -45,7 +45,7 @@ from notes.crud import (
     search_group,
     delete_group,
 )
-from utils import filter_book
+from utils import filter_books, get_books_substr, get_books_groups, filter_books_adv
 import uvicorn
 import asyncio
 import json
@@ -699,25 +699,39 @@ async def remove_group(
     return {"status": 200}
 
 
-@app.get("/filter/books", tags=["filter"], response_model=list[BookScheme])
+@app.post("/filter/books", tags=["filter"], response_model=list[BookScheme])
 async def filter_advanced(
+    substr: str,
     authors: list[str] | None = None,
     themes: list[str] | None = None,
     genres: list[str] | None = None,
-    group_props: dict | None = None,
-    email: str | None = None,
     db: AsyncSession = Depends(get_db_session),
 ):
-    user_id = None
-
-    if email:
-        user = await get_user(db, email)
-        if user:
-            user_id = user.id
-
-    result = await filter_book(db, authors, themes, genres, group_props, user_id)
+    result = await filter_books_adv(db, substr, authors, genres, themes)
 
     if isinstance(result, HTTPException):
         raise result
 
     return result
+
+
+@app.get("/books/substr", tags=["filter"], response_model=list[BookScheme])
+async def search_books_substring(
+    substr: str, db: AsyncSession = Depends(get_db_session)
+):
+    books = await get_books_substr(db, substr)
+    return books
+
+
+@app.get("/filter/books/groups", tags=["filter"], response_model=list[BookScheme])
+async def filter_by_groups(
+    group: str,
+    db: AsyncSession = Depends(get_db_session),
+    curr_user: models.UsersModel = Depends(get_current_user),
+):
+    if group not in ["is_favourite", "want_to_read", "now_reading", "have_read"]:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Group not founded"
+        )
+    books = await get_books_groups(db, curr_user.id, group)
+    return books

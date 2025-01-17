@@ -139,7 +139,7 @@ export default {
   data() {
     return {
       downloadedImageUrls: [], // Array of image URLs matching groupBooks
-      groupBooks: [], 
+      groupBooks: [],
       searchQuery: this.$route.query.query || "",
       searchAuthorsQuery: "", // Search for authors specifically
       selectedFilters: {
@@ -190,7 +190,7 @@ export default {
       dropdownVisible: true,
       themesDropdownVisible: true,
       authorDropdownVisible: true,
-     
+
       filteredBooks: [],
     };
   },
@@ -382,7 +382,7 @@ async getSubstrBooks(substr) {
         });
 
         if (response.ok) {
-          const data = await response.json();          
+          const data = await response.json();
 
           this.groupBooks = data
         .map(book => ({
@@ -406,7 +406,7 @@ async getSubstrBooks(substr) {
 
       }
 
-    },  
+    },
     async filterBooks(authors, themes, genres){
       //all params is a list of strings. if you dont want to filter by smth just give []
       //example: ["Tom Shelby", "Anna Kawasaki"]
@@ -455,8 +455,8 @@ async getSubstrBooks(substr) {
         console.error("Error getting books from filters: ", error);
       }
     },
-    
-    
+
+
     async displayBookMetadata() {
       if (this.books.length === 0) {
         this.downloadImagesAndMetadata();
@@ -518,7 +518,7 @@ removeAuthor(index) {
   this.selectedFilters.authors.splice(index, 1);
 },
 
-    
+
   },
   mounted() {
      if (this.searchQuery) {
@@ -545,34 +545,6 @@ p {
 color: #5e5c5c;
 }
 
-/* .library-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4); 
-  z-index: -1; 
-} 
-*/
-
-.library-container {
-  position: relative;
-  width: 100%; /* Zapewnia, że kontener zajmuje całą szerokość */
-  height: 100vh; /* Ustala wysokość kontenera na 100% wysokości okna przeglądarki */
-  margin: 0;
-  padding: 20px;
-  font-family: 'Roboto', Arial, sans-serif;
-  color: #333;
-  /* Background image with opacity */
-  background-image: url('/src/components/icons/stena.webp');
-  background-size: cover; /* Zapewnia, że tło pokrywa cały kontener */
-  background-position: center; /* Ustawia tło na środku */
-  background-repeat: no-repeat; /* Zapobiega powtarzaniu się tła */
-  opacity: 0.85; /* Ustawia pełną widoczność tła */
-}
-
 .library-container::before {
   content: '';
   position: absolute;
@@ -580,8 +552,8 @@ color: #5e5c5c;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4); /* Przyciemniony overlay dla lepszej widoczności tekstu */
-  z-index: -1; /* Zapewnia, że overlay jest pod zawartością */
+  background-color: rgba(0, 0, 0, 0.4); /* Darker overlay for better readability */
+  z-index: -1; /* Ensures overlay is behind the content */
 }
 
 

@@ -1,5 +1,5 @@
 <template>
-  <div>   
+  <!-- <div>   
     <button @click="postcheckpoints('Coraline',5)">postcheckpoints</button>
     <button @click="postNotes('Coraline',5,'description','want to make it right',122)">postNotes</button>
     <button @click="getCheckpoints('Coraline')">getCheckpoints</button>
@@ -26,7 +26,7 @@
   </div>
 
     <Toast ref="toastRef" />
-  </div>
+  </div> -->
 </template>
 
 

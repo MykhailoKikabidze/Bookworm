@@ -492,13 +492,12 @@ async addToGroup(title, groupType) {
 
       // Check if the book is already in the desired group
       if (
-        (groupType === "want_to_read" && existingGroup.want_to_read) ||
-        (groupType === "now_reading" && existingGroup.now_reading) ||
-        (groupType === "have_read" && existingGroup.have_read) ||
-        (groupType === "is_favourite" && existingGroup.is_favourite)
+        ( existingGroup.want_to_read) ||
+        (existingGroup.now_reading) ||
+        ( existingGroup.have_read) 
       ) {
         // Book is already in the group, show the appropriate message
-        toastRef.message = `You already have this book in the ${groupType} group.`;
+        toastRef.message = `You already have this book in another group.`;
         toastRef.notificationClass = "error-toast";
         this.$refs.toastRef.showNotificationMessage();
         return; // Exit early to avoid adding the book again

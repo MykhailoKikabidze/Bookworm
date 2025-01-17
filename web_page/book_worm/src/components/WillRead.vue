@@ -38,7 +38,7 @@ export default {
   },
   mounted() {
     // Call fetchGroupBooks when the component is mounted
-    this.fetchGroupBooks('now_reading');
+    this.fetchGroupBooks('want_to_read');
   },
   methods: {
     async fetchGroupBooks(group) {

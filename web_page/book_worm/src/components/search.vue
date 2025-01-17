@@ -5,7 +5,7 @@
       <input
         type="text"
         v-model="searchQuery"
-        @input="searchBooks"
+        @input="applyFilters"
         placeholder="Search for books..."
         class="search-input"
       />
@@ -82,7 +82,7 @@
             <input
               type="text"
               v-model="searchAuthorsQuery"
-              @input="filterAuthors"
+              @input="applyFilters"
               laceholder="Search for authors..."
               class="search-input"
             />
@@ -407,18 +407,21 @@ async getSubstrBooks(substr) {
       }
 
     },  
-    async filterBooks(authors, themes, genres){
+    async filterBooks(authors, themes, genres,substr){
       //all params is a list of strings. if you dont want to filter by smth just give []
       //example: ["Tom Shelby", "Anna Kawasaki"]
+
+      const params = new URLSearchParams();
+      params.append("substr", substr);
 
       const requestBody = {
         authors: authors,
         themes: themes,
-        genres: genres
+        genres: genres,
       };
 
       try {
-        const response = await fetch(`${this.$link_backend}/filter/books`, {
+        const response = await fetch(`${this.$link_backend}/filter/books?${params.toString()}`, {
           method: "POST",
           headers: {
             "ngrok-skip-browser-warning": "anyValue",
@@ -466,7 +469,7 @@ async getSubstrBooks(substr) {
 
     applyFilters() {
       console.log("Selected filters:", this.selectedFilters.authors);
-      this.filterBooks(this.selectedFilters.authors,this.selectedFilters.themes,this.selectedFilters.genres)
+      this.filterBooks(this.selectedFilters.authors,this.selectedFilters.themes,this.selectedFilters.genres,this.searchQuery);
     },
     toggleDropdown() {
       this.dropdownVisible = !this.dropdownVisible;
@@ -545,6 +548,22 @@ p {
 color: #5e5c5c;
 }
 
+.library-container {
+  position: relative;
+  width: 100%; /* Zapewnia, że kontener zajmuje całą szerokość */
+  height: 100vh; /* Ustala wysokość kontenera na 100% wysokości okna przeglądarki */
+  margin: 0;
+  padding: 20px;
+  font-family: 'Roboto', Arial, sans-serif;
+  color: #333;
+  /* Background image with opacity */
+  background-image: url('/src/components/icons/stena.webp');
+  background-size: cover; /* Zapewnia, że tło pokrywa cały kontener */
+  background-position: center; /* Ustawia tło na środku */
+  background-repeat: no-repeat; /* Zapobiega powtarzaniu się tła */
+  opacity: 0.85; /* Ustawia pełną widoczność tła */
+}
+
 .library-container::before {
   content: '';
   position: absolute;
@@ -552,10 +571,9 @@ color: #5e5c5c;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4); /* Darker overlay for better readability */
-  z-index: -1; /* Ensures overlay is behind the content */
+  background-color: rgba(0, 0, 0, 0.4); /* Przyciemniony overlay dla lepszej widoczności tekstu */
+  z-index: -1; /* Zapewnia, że overlay jest pod zawartością */
 }
-
 
 
 .fetch-btn {
